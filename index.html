@@ -322,6 +322,44 @@
     .card.rose .card-glow   { background: rgba(244,63,94,0.35); }
     .card.rose .card-cta    { color: #fb7185; }
 
+    /* ── Category Headers ── */
+    .category-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .cat-icon {
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .cat-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .cat-line {
+      flex: 1;
+      height: 1px;
+      background: var(--card-border);
+    }
+
+    /* ── Coming Soon Card ── */
+    .card.coming-soon {
+      opacity: 0.45;
+      cursor: default;
+      pointer-events: none;
+      border-style: dashed;
+    }
+
+    .card.coming-soon h2 { color: var(--muted); }
+
     /* ── Footer ── */
     footer {
       text-align: center;
@@ -357,32 +395,23 @@
     <p>All Branwood Group reports and dashboards in one place. Select a dashboard below to get started.</p>
   </section>
 
+  <!-- SALES & REVENUE -->
   <section class="grid-section">
-    <div class="grid-label">Available Dashboards</div>
+    <div class="category-header">
+      <span class="cat-icon">📊</span>
+      <span class="cat-label">Sales & Revenue</span>
+      <div class="cat-line"></div>
+    </div>
     <div class="grid">
 
       <a class="card amber" href="daily-sales-dashboard.html">
         <div class="card-glow"></div>
         <div class="card-top">
-          <div class="card-icon">📊</div>
+          <div class="card-icon">📅</div>
           <span class="card-status status-live">Live</span>
         </div>
         <h2>Daily Sales Dashboard</h2>
         <p>Track daily revenue, transactions, and performance across all outlets and brands.</p>
-        <div class="card-divider"></div>
-        <div class="card-footer">
-          <span class="card-cta">Open Dashboard <span>→</span></span>
-        </div>
-      </a>
-
-      <a class="card blue" href="food-delivery-dashboard.html">
-        <div class="card-glow"></div>
-        <div class="card-top">
-          <div class="card-icon">🛵</div>
-          <span class="card-status status-live">Live</span>
-        </div>
-        <h2>Food Delivery Dashboard</h2>
-        <p>Analyse Foodpanda and GrabFood statement performance, commissions, and delivery ROI.</p>
         <div class="card-divider"></div>
         <div class="card-footer">
           <span class="card-cta">Open Dashboard <span>→</span></span>
@@ -416,6 +445,52 @@
           <span class="card-cta">Open Dashboard <span>→</span></span>
         </div>
       </a>
+
+    </div>
+  </section>
+
+  <!-- DELIVERY PLATFORMS -->
+  <section class="grid-section">
+    <div class="category-header">
+      <span class="cat-icon">🛵</span>
+      <span class="cat-label">Delivery Platforms</span>
+      <div class="cat-line"></div>
+    </div>
+    <div class="grid">
+
+      <a class="card blue" href="food-delivery-dashboard.html">
+        <div class="card-glow"></div>
+        <div class="card-top">
+          <div class="card-icon">🛵</div>
+          <span class="card-status status-live">Live</span>
+        </div>
+        <h2>Food Delivery Dashboard</h2>
+        <p>Analyse Foodpanda and GrabFood statement performance, commissions, and delivery ROI.</p>
+        <div class="card-divider"></div>
+        <div class="card-footer">
+          <span class="card-cta">Open Dashboard <span>→</span></span>
+        </div>
+      </a>
+
+    </div>
+  </section>
+
+  <!-- MARKETING -->
+  <section class="grid-section">
+    <div class="category-header">
+      <span class="cat-icon">📣</span>
+      <span class="cat-label">Marketing</span>
+      <div class="cat-line"></div>
+    </div>
+    <div class="grid">
+
+      <div class="card coming-soon">
+        <div class="card-top">
+          <div class="card-icon">🚧</div>
+        </div>
+        <h2>Coming Soon</h2>
+        <p>Marketing dashboards are currently in development.</p>
+      </div>
 
     </div>
   </section>
