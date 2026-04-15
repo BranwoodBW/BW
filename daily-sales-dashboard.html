@@ -10383,6 +10383,15 @@ const GRID_COLOR  = 'rgba(0,0,0,0.07)';
 const TICK_COLOR  = '#64748b';
 const LEGEND_COLOR= '#1e293b';
 
+// ── SORT HELPER ───────────────────────────────────────────────────────────────
+// Parse a cell value that may carry a 'k' suffix (e.g. "1.5k" → 1500)
+function parseSortVal(text) {
+  const s = (text || '').trim();
+  const hasK = /k$/i.test(s);
+  const n = parseFloat(s.replace(/[$,k\u2014\u25b2\u25bc\s]/g, ''));
+  return isNaN(n) ? NaN : (hasK ? n * 1000 : n);
+}
+
 // ── TAB SWITCHING ─────────────────────────────────────────────────────────────
 function showTab(id, btn) {
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
@@ -10503,9 +10512,9 @@ function makeSortable(id){
       const tbody=tbl.querySelector('tbody');
       const rows=Array.from(tbody.querySelectorAll('tr:not(.total-row)'));
       rows.sort((a,b)=>{
-        const av=(a.cells[ci]?.textContent||'').replace(/[$,\u2014\u25b2\u25bc]/g,'').trim();
-        const bv=(b.cells[ci]?.textContent||'').replace(/[$,\u2014\u25b2\u25bc]/g,'').trim();
-        const an=parseFloat(av),bn=parseFloat(bv);
+        const av=(a.cells[ci]?.textContent||'').trim();
+        const bv=(b.cells[ci]?.textContent||'').trim();
+        const an=parseSortVal(av),bn=parseSortVal(bv);
         return((!isNaN(an)&&!isNaN(bn))?an-bn:av.localeCompare(bv))*sd;
       });
       const tr=tbody.querySelector('.total-row');
@@ -10858,9 +10867,9 @@ function renderDailyTable(){
         const tbody=tbl.querySelector('tbody');
         const rows=Array.from(tbody.querySelectorAll('tr:not(.total-row)'));
         rows.sort((a,b)=>{
-          const av=(a.cells[ci]?.textContent||'').replace(/[$,k\u2014\u25b2\u25bc]/g,'').trim();
-          const bv=(b.cells[ci]?.textContent||'').replace(/[$,k\u2014\u25b2\u25bc]/g,'').trim();
-          const an=parseFloat(av),bn=parseFloat(bv);
+          const av=(a.cells[ci]?.textContent||'').trim();
+          const bv=(b.cells[ci]?.textContent||'').trim();
+          const an=parseSortVal(av),bn=parseSortVal(bv);
           return((!isNaN(an)&&!isNaN(bn))?an-bn:av.localeCompare(bv))*sd;
         });
         const tr=tbody.querySelector('.total-row');
