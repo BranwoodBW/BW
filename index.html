@@ -5,170 +5,396 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Branwood Group — Dashboards</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
+    :root {
+      --amber: #f59e0b;
+      --amber-light: #fde68a;
+      --dark: #0f0f1a;
+      --dark2: #1a1a2e;
+      --dark3: #16213e;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --card-bg: rgba(255,255,255,0.04);
+      --card-border: rgba(255,255,255,0.08);
+    }
+
+    html, body {
+      height: 100%;
+    }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #f4f5f7;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--dark);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Background ── */
+    .bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(245,158,11,0.15) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 90% 80%, rgba(99,102,241,0.12) 0%, transparent 55%),
+        linear-gradient(160deg, #0f0f1a 0%, #1a1a2e 50%, #0d1117 100%);
+    }
+
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(ellipse 80% 80% at 50% 0%, black 20%, transparent 100%);
+    }
+
+    /* ── Layout ── */
+    .page {
+      position: relative;
+      z-index: 1;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
     }
 
+    /* ── Header ── */
     header {
-      background: #1a1a2e;
-      color: #fff;
-      padding: 28px 40px;
+      padding: 32px 48px 0;
       display: flex;
       align-items: center;
-      gap: 16px;
+      justify-content: space-between;
     }
 
-    header .logo {
-      width: 44px;
-      height: 44px;
-      background: #e8a020;
-      border-radius: 10px;
+    .brand {
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-weight: 800;
-      font-size: 18px;
-      color: #1a1a2e;
-      flex-shrink: 0;
+      gap: 14px;
     }
 
-    header h1 {
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: 0.3px;
-    }
-
-    header p {
-      font-size: 13px;
-      color: #a0a8bb;
-      margin-top: 2px;
-    }
-
-    main {
-      flex: 1;
-      padding: 48px 40px;
-      max-width: 960px;
-      width: 100%;
-      margin: 0 auto;
-    }
-
-    .section-title {
-      font-size: 13px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #888;
-      margin-bottom: 20px;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 20px;
-    }
-
-    .card {
-      background: #fff;
-      border-radius: 14px;
-      padding: 28px;
-      text-decoration: none;
-      color: inherit;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
-      border: 1px solid #e8eaed;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.11);
-    }
-
-    .card-icon {
-      width: 48px;
-      height: 48px;
+    .logo {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, var(--amber), #d97706);
       border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 22px;
+      font-weight: 800;
+      font-size: 16px;
+      color: #0f0f1a;
+      box-shadow: 0 0 24px rgba(245,158,11,0.35);
+      flex-shrink: 0;
     }
 
-    .card-icon.orange { background: #fff4e0; }
-    .card-icon.blue   { background: #e8f0fe; }
-    .card-icon.green  { background: #e6f4ea; }
-    .card-icon.purple { background: #f3e8fd; }
+    .brand-name {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .brand-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 999px;
+      background: rgba(245,158,11,0.12);
+      color: var(--amber);
+      border: 1px solid rgba(245,158,11,0.2);
+      letter-spacing: 0.3px;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      text-align: center;
+      padding: 72px 40px 48px;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--amber);
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 999px;
+      padding: 5px 14px;
+      margin-bottom: 24px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .hero h1 {
+      font-size: clamp(32px, 5vw, 52px);
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      line-height: 1.1;
+      margin-bottom: 18px;
+      background: linear-gradient(135deg, #fff 30%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      font-size: 16px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    /* ── Grid ── */
+    .grid-section {
+      padding: 0 48px 64px;
+      max-width: 1100px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .grid-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--muted);
+      margin-bottom: 20px;
+      padding-left: 2px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    /* ── Card ── */
+    .card {
+      position: relative;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 28px;
+      text-decoration: none;
+      color: inherit;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 20px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+      border-color: rgba(255,255,255,0.16);
+    }
+
+    .card:hover .card-glow {
+      opacity: 1;
+    }
+
+    .card-glow {
+      position: absolute;
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      filter: blur(60px);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      top: -40px;
+      right: -40px;
+    }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .card-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+
+    .card-status {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 999px;
+      letter-spacing: 0.3px;
+    }
+
+    .status-live {
+      background: rgba(34,197,94,0.12);
+      color: #4ade80;
+      border: 1px solid rgba(34,197,94,0.2);
+    }
 
     .card h2 {
-      font-size: 16px;
+      font-size: 18px;
       font-weight: 700;
-      color: #1a1a2e;
+      letter-spacing: -0.3px;
+      margin-bottom: 8px;
+      color: #fff;
     }
 
     .card p {
-      font-size: 13px;
-      color: #777;
-      line-height: 1.5;
+      font-size: 13.5px;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 24px;
     }
 
-    .card .arrow {
+    .card-footer {
       margin-top: auto;
-      font-size: 13px;
-      font-weight: 600;
-      color: #e8a020;
       display: flex;
       align-items: center;
-      gap: 4px;
+      justify-content: space-between;
     }
 
+    .card-cta {
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: gap 0.2s ease;
+    }
+
+    .card:hover .card-cta {
+      gap: 10px;
+    }
+
+    .card-divider {
+      height: 1px;
+      background: var(--card-border);
+      margin: 0 -28px 20px;
+    }
+
+    /* Card colour themes */
+    .card.amber .card-icon  { background: rgba(245,158,11,0.15); }
+    .card.amber .card-glow  { background: rgba(245,158,11,0.4); }
+    .card.amber .card-cta   { color: var(--amber); }
+
+    .card.blue .card-icon   { background: rgba(99,102,241,0.15); }
+    .card.blue .card-glow   { background: rgba(99,102,241,0.4); }
+    .card.blue .card-cta    { color: #818cf8; }
+
+    .card.green .card-icon  { background: rgba(34,197,94,0.12); }
+    .card.green .card-glow  { background: rgba(34,197,94,0.35); }
+    .card.green .card-cta   { color: #4ade80; }
+
+    .card.rose .card-icon   { background: rgba(244,63,94,0.12); }
+    .card.rose .card-glow   { background: rgba(244,63,94,0.35); }
+    .card.rose .card-cta    { color: #fb7185; }
+
+    /* ── Footer ── */
     footer {
       text-align: center;
       padding: 24px;
       font-size: 12px;
-      color: #bbb;
+      color: rgba(148,163,184,0.4);
     }
   </style>
 </head>
 <body>
 
+<div class="bg"></div>
+<div class="bg-grid"></div>
+
+<div class="page">
+
   <header>
-    <div class="logo">BW</div>
-    <div>
-      <h1>Branwood Group</h1>
-      <p>Internal Dashboards</p>
+    <div class="brand">
+      <div class="logo">BW</div>
+      <div>
+        <div class="brand-name">Branwood Group</div>
+        <div class="brand-sub">Internal Analytics</div>
+      </div>
     </div>
+    <div class="badge">Internal Use Only</div>
   </header>
 
-  <main>
-    <div class="section-title">Select a Dashboard</div>
+  <section class="hero">
+    <div class="hero-tag">
+      <span>●</span> Dashboards
+    </div>
+    <h1>Your data,<br>at a glance.</h1>
+    <p>All Branwood Group reports and dashboards in one place. Select a dashboard below to get started.</p>
+  </section>
+
+  <section class="grid-section">
+    <div class="grid-label">Available Dashboards</div>
     <div class="grid">
 
-      <a class="card" href="daily-sales-dashboard.html">
-        <div class="card-icon orange">📊</div>
+      <a class="card amber" href="daily-sales-dashboard.html">
+        <div class="card-glow"></div>
+        <div class="card-top">
+          <div class="card-icon">📊</div>
+          <span class="card-status status-live">Live</span>
+        </div>
         <h2>Daily Sales Dashboard</h2>
-        <p>Track daily revenue across all outlets and brands.</p>
-        <span class="arrow">Open →</span>
+        <p>Track daily revenue, transactions, and performance across all outlets and brands.</p>
+        <div class="card-divider"></div>
+        <div class="card-footer">
+          <span class="card-cta">Open Dashboard <span>→</span></span>
+        </div>
       </a>
 
-      <a class="card" href="food-delivery-dashboard.html">
-        <div class="card-icon blue">🛵</div>
+      <a class="card blue" href="food-delivery-dashboard.html">
+        <div class="card-glow"></div>
+        <div class="card-top">
+          <div class="card-icon">🛵</div>
+          <span class="card-status status-live">Live</span>
+        </div>
         <h2>Food Delivery Dashboard</h2>
-        <p>Analyse Foodpanda and GrabFood statement performance.</p>
-        <span class="arrow">Open →</span>
+        <p>Analyse Foodpanda and GrabFood statement performance, commissions, and delivery ROI.</p>
+        <div class="card-divider"></div>
+        <div class="card-footer">
+          <span class="card-cta">Open Dashboard <span>→</span></span>
+        </div>
       </a>
 
     </div>
-  </main>
+  </section>
 
-  <footer>Branwood Group &copy; 2026</footer>
+  <footer>Branwood Group &copy; 2026 &nbsp;·&nbsp; Internal Use Only</footer>
+
+</div>
 
 </body>
 </html>
