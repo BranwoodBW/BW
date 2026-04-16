@@ -197,22 +197,6 @@
   .pl-kpi-lbl  { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
   .pl-kpi-val  { font-size:24px; font-weight:800; color:var(--pkc,var(--text)); margin:5px 0 3px; line-height:1; }
   .pl-kpi-sub  { font-size:11px; color:var(--muted); }
-  /* ── Outlet Rankings ──────────────────────────────────────────────── */
-  .pl-rankings-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:22px; }
-  .pl-rank-card  { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
-  .pl-rank-title { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px;
-                   color:var(--muted); margin-bottom:10px; display:flex; align-items:center; gap:5px; }
-  .pl-rank-row   { display:flex; align-items:center; gap:8px; padding:5px 0;
-                   border-bottom:1px solid var(--border); }
-  .pl-rank-row:last-child { border-bottom:none; }
-  .pl-rank-badge { width:18px; height:18px; border-radius:50%; font-size:9px; font-weight:700;
-                   display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-  .pl-rank-code  { font-size:11px; font-weight:600; width:68px; flex-shrink:0; color:var(--text); }
-  .pl-rank-brand { font-size:10px; color:var(--muted); flex:1; overflow:hidden;
-                   text-overflow:ellipsis; white-space:nowrap; }
-  .pl-rank-bar-wrap { width:64px; height:5px; background:var(--border); border-radius:3px; flex-shrink:0; }
-  .pl-rank-bar-fill { height:5px; border-radius:3px; }
-  .pl-rank-amt   { font-size:11px; font-weight:700; width:58px; text-align:right; flex-shrink:0; }
 </style>
 </head>
 <body>
@@ -426,8 +410,6 @@
     <div class="chart-card"><h3>Monthly Cost Breakdown</h3>
       <div style="position:relative;height:280px"><canvas id="pl-cost-chart"></canvas></div></div>
   </div>
-
-  <div id="pl-outlet-rankings"></div>
 
   <div class="table-section">
     <h3>Monthly P&amp;L Statement</h3>
@@ -11215,9 +11197,14 @@ function renderPLTab() {
   const plDiv = document.getElementById('tab-pl');
   if (!BWPL_LOADED) {
     document.getElementById('pl-kpi-grid').innerHTML = '<p style="padding:12px;color:var(--muted);font-size:12px">⏳ Loading CY Branwood data…</p>';
-    fetchBWPLData().then(()=>renderPLTab()).catch(e=>{
-      document.getElementById('pl-kpi-grid').innerHTML = `<p style="padding:12px;color:#ef4444;font-size:12px">Failed to load: ${e.message}</p>`;
-    });
+    if (BWPL_LOADING) {
+      // Fetch already in progress — poll until done instead of creating an infinite microtask loop
+      setTimeout(() => renderPLTab(), 400);
+    } else {
+      fetchBWPLData().then(()=>renderPLTab()).catch(e=>{
+        document.getElementById('pl-kpi-grid').innerHTML = `<p style="padding:12px;color:#ef4444;font-size:12px">Failed to load: ${e.message}</p>`;
+      });
+    }
     return;
   }
 
@@ -11539,91 +11526,6 @@ function renderPLTab() {
 
   h += '</tbody></table>';
   document.getElementById('pl-table').innerHTML = h;
-
-  // ── OUTLET RANKINGS ───────────────────────────────────────────────────────
-  // Aggregate revenue & cost per outlet across all filtered months.
-  // Exclude outlets whose total revenue ≤ $1 (placeholder / dummy entries).
-  const _oRev  = {};
-  const _oCost = {};
-  const _oBrand= {};
-  for (const mk of months) {
-    for (const r of (byMk[mk] || [])) {
-      if (!r.outlet) continue;
-      if (!_oBrand[r.outlet]) _oBrand[r.outlet] = r.brand || r.outlet;
-      if (r.mainCode === 'SALES') _oRev[r.outlet]  = (_oRev[r.outlet]  || 0) + r.amt;
-      else                        _oCost[r.outlet] = (_oCost[r.outlet] || 0) + r.amt;
-    }
-  }
-
-  // Top 5 Revenue — exclude outlets with ≤ $1 total revenue
-  const top5Rev = Object.entries(_oRev)
-    .filter(([,v]) => v > 1)
-    .sort((a,b) => b[1]-a[1])
-    .slice(0,5);
-
-  // Top 5 % Cost — cost as % of revenue; only outlets with revenue > $1
-  const top5CostPct = Object.keys(_oCost)
-    .filter(code => (_oRev[code]||0) > 1)
-    .map(code => [code, (_oCost[code] / _oRev[code]) * 100])
-    .sort((a,b) => b[1]-a[1])
-    .slice(0,5);
-
-  const _REV_CLR  = ['#16a163','#22c55e','#4ade80','#86efac','#bbf7d0'];
-  const _REV_TXT  = ['#fff','#fff','#fff','#16a163','#16a163'];
-  const _COST_CLR = ['#ef4444','#f87171','#fca5a5','#fecaca','#fee2e2'];
-  const _COST_TXT = ['#fff','#fff','#fff','#ef4444','#ef4444'];
-
-  function _fmtK(n) {
-    if (n >= 1e6) return '$'+(n/1e6).toFixed(2)+'M';
-    if (n >= 1e3) return '$'+(n/1e3).toFixed(1)+'K';
-    return '$'+n.toFixed(0);
-  }
-
-  function _rankRevRows(items) {
-    if (!items.length) return '<p style="color:var(--muted);font-size:11px;padding:8px 0">No data</p>';
-    const maxAmt = items[0][1];
-    return items.map(([code, amt], i) => {
-      const barPct = maxAmt > 0 ? (amt/maxAmt*100).toFixed(1) : 0;
-      const bg = _REV_CLR[i]; const tc = _REV_TXT[i];
-      const brand = (_oBrand[code]||'').slice(0,22);
-      return `<div class="pl-rank-row">
-        <div class="pl-rank-badge" style="background:${bg};color:${tc}">${i+1}</div>
-        <div class="pl-rank-code">${code}</div>
-        <div class="pl-rank-brand">${brand}</div>
-        <div class="pl-rank-bar-wrap"><div class="pl-rank-bar-fill" style="width:${barPct}%;background:${bg}"></div></div>
-        <div class="pl-rank-amt">${_fmtK(amt)}</div>
-      </div>`;
-    }).join('');
-  }
-
-  function _rankCostPctRows(items) {
-    if (!items.length) return '<p style="color:var(--muted);font-size:11px;padding:8px 0">No data</p>';
-    const maxPct = items[0][1];
-    return items.map(([code, pct], i) => {
-      const barPct = maxPct > 0 ? (pct/maxPct*100).toFixed(1) : 0;
-      const bg = _COST_CLR[i]; const tc = _COST_TXT[i];
-      const brand = (_oBrand[code]||'').slice(0,22);
-      return `<div class="pl-rank-row">
-        <div class="pl-rank-badge" style="background:${bg};color:${tc}">${i+1}</div>
-        <div class="pl-rank-code">${code}</div>
-        <div class="pl-rank-brand">${brand}</div>
-        <div class="pl-rank-bar-wrap"><div class="pl-rank-bar-fill" style="width:${barPct}%;background:${bg}"></div></div>
-        <div class="pl-rank-amt">${pct.toFixed(1)}%</div>
-      </div>`;
-    }).join('');
-  }
-
-  document.getElementById('pl-outlet-rankings').innerHTML = `
-    <div class="pl-rankings-grid">
-      <div class="pl-rank-card">
-        <div class="pl-rank-title">🏆 Top 5 Outlets — Revenue</div>
-        ${_rankRevRows(top5Rev)}
-      </div>
-      <div class="pl-rank-card">
-        <div class="pl-rank-title">📊 Top 5 Outlets — Cost % of Revenue</div>
-        ${_rankCostPctRows(top5CostPct)}
-      </div>
-    </div>`;
 }
 
 fetchBWPLData().catch(err => console.warn('BW P&L prefetch failed:', err));
