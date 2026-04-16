@@ -140,8 +140,10 @@
   .daily-tbl td.td-avg-we { border-left:2px solid var(--border); background:rgba(245,158,11,.07); font-weight:600; color:#92400e; }
   .daily-tbl td.td-total  { border-left:2px solid var(--border); background:var(--card2); font-weight:700; color:var(--text); }
   .daily-tbl .total-row td { background:var(--card2); font-weight:700; color:var(--text); border-top:2px solid var(--border); }
-  .daily-tbl .sticky-ol    { position:sticky; left:0; z-index:2; background:var(--card); min-width:75px; }
-  .daily-tbl .sticky-brand { position:sticky; left:75px; z-index:2; background:var(--card); min-width:120px; }
+  .daily-tbl .sticky-ol    { position:sticky; left:0;      z-index:2; background:var(--card); min-width:75px; }
+  .daily-tbl .sticky-brand { position:sticky; left:75px;   z-index:2; background:var(--card); min-width:120px; }
+  .daily-tbl .sticky-mgr   { position:sticky; left:195px;  z-index:2; background:var(--card); min-width:72px; }
+  .daily-tbl td.td-mgr     { color:var(--muted); font-size:10px; }
 
   @media (max-width:900px) {
     .charts-grid { grid-template-columns:1fr; }
@@ -10880,10 +10882,13 @@ function renderDailyTable(){
   };
   const dayAbbr = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
+  const DISPLAY_DATES = DAILY_DATES;
+
   let h='<table class="daily-tbl"><thead><tr>';
   h+='<th class="th-left sticky-ol sortable">Outlet</th>';
   h+='<th class="th-left sticky-brand sortable">Brand</th>';
-  DAILY_DATES.forEach(dt=>{
+  h+='<th class="th-left sticky-mgr sortable">Manager</th>';
+  DISPLAY_DATES.forEach(dt=>{
     const d=parseDate(dt); if(!d) return;
     const we=IS_WEEKEND[dt];
     const dStr=dayAbbr[d.getDay()]+'<br>'+(d.getDate())+'/'+(d.getMonth()+1);
@@ -10906,10 +10911,12 @@ function renderDailyTable(){
     const rowTotal=Object.values(dmap).reduce((s,v)=>s+v,0);
     grandTotal+=rowTotal;
 
+    const mgr = meta.manager || '—';
     h+=`<tr><td class="td-left sticky-ol">${ol}</td>`;
     h+=`<td class="td-left td-brand sticky-brand">${brand}</td>`;
+    h+=`<td class="td-left td-mgr sticky-mgr">${mgr}</td>`;
 
-    DAILY_DATES.forEach(dt=>{
+    DISPLAY_DATES.forEach(dt=>{
       const we=IS_WEEKEND[dt];
       const avg=we?avgs.we:avgs.wd;
       const v=dmap[dt]||0;
@@ -10931,8 +10938,8 @@ function renderDailyTable(){
     h+=`<td class="td-total">${fmtFull(rowTotal)}</td></tr>`;
   });
 
-  h+='<tr class="total-row"><td class="sticky-ol">TOTAL</td><td class="sticky-brand"></td>';
-  DAILY_DATES.forEach(dt=>{
+  h+='<tr class="total-row"><td class="sticky-ol">TOTAL</td><td class="sticky-brand"></td><td class="sticky-mgr"></td>';
+  DISPLAY_DATES.forEach(dt=>{
     const v=colTotals[dt]||0;
     h+=`<td>${v>0?(v>=1000?(v/1000).toFixed(1)+'k':v.toFixed(0)):'\u2014'}</td>`;
   });
@@ -11534,10 +11541,11 @@ function renderPLTab() {
   document.getElementById('pl-table').innerHTML = h;
 
   // ── OUTLET RANKINGS ───────────────────────────────────────────────────────
-  // Aggregate revenue & cost per outlet across all filtered months
-  const _oRev  = {};   // outlet → total revenue
-  const _oCost = {};   // outlet → total cost
-  const _oBrand= {};   // outlet → brand label
+  // Aggregate revenue & cost per outlet across all filtered months.
+  // Exclude outlets whose total revenue ≤ $1 (placeholder / dummy entries).
+  const _oRev  = {};
+  const _oCost = {};
+  const _oBrand= {};
   for (const mk of months) {
     for (const r of (byMk[mk] || [])) {
       if (!r.outlet) continue;
@@ -11547,27 +11555,23 @@ function renderPLTab() {
     }
   }
 
-  const _sortD  = obj => Object.entries(obj).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
-  const sortedRev  = _sortD(_oRev);
-  const sortedCost = _sortD(_oCost);
+  // Top 5 Revenue — exclude outlets with ≤ $1 total revenue
+  const top5Rev = Object.entries(_oRev)
+    .filter(([,v]) => v > 1)
+    .sort((a,b) => b[1]-a[1])
+    .slice(0,5);
 
-  const top5Rev   = sortedRev.slice(0,5);
-  const bot5Rev   = [...sortedRev].reverse().slice(0,5);
-  const top5Cost  = sortedCost.slice(0,5);
-  const bot5Cost  = [...sortedCost].reverse().slice(0,5);
+  // Top 5 % Cost — cost as % of revenue; only outlets with revenue > $1
+  const top5CostPct = Object.keys(_oCost)
+    .filter(code => (_oRev[code]||0) > 1)
+    .map(code => [code, (_oCost[code] / _oRev[code]) * 100])
+    .sort((a,b) => b[1]-a[1])
+    .slice(0,5);
 
-  const _RANK_CLR = {
-    topRev:  ['#16a163','#22c55e','#4ade80','#86efac','#bbf7d0'],
-    botRev:  ['#ef4444','#f87171','#fca5a5','#fecaca','#fee2e2'],
-    topCost: ['#f97316','#fb923c','#fdba74','#fed7aa','#ffedd5'],
-    botCost: ['#8b5cf6','#a78bfa','#c4b5fd','#ddd6fe','#ede9fe'],
-  };
-  const _RANK_TXT = { // text colour for badge (dark for pale shades)
-    topRev: ['#fff','#fff','#fff','#16a163','#16a163'],
-    botRev: ['#fff','#fff','#fff','#ef4444','#ef4444'],
-    topCost:['#fff','#fff','#fff','#f97316','#f97316'],
-    botCost:['#fff','#fff','#fff','#6d28d9','#6d28d9'],
-  };
+  const _REV_CLR  = ['#16a163','#22c55e','#4ade80','#86efac','#bbf7d0'];
+  const _REV_TXT  = ['#fff','#fff','#fff','#16a163','#16a163'];
+  const _COST_CLR = ['#ef4444','#f87171','#fca5a5','#fecaca','#fee2e2'];
+  const _COST_TXT = ['#fff','#fff','#fff','#ef4444','#ef4444'];
 
   function _fmtK(n) {
     if (n >= 1e6) return '$'+(n/1e6).toFixed(2)+'M';
@@ -11575,20 +11579,36 @@ function renderPLTab() {
     return '$'+n.toFixed(0);
   }
 
-  function _rankRows(items, clrKey) {
+  function _rankRevRows(items) {
     if (!items.length) return '<p style="color:var(--muted);font-size:11px;padding:8px 0">No data</p>';
     const maxAmt = items[0][1];
     return items.map(([code, amt], i) => {
-      const pct   = maxAmt > 0 ? (amt/maxAmt*100).toFixed(1) : 0;
-      const bg    = _RANK_CLR[clrKey][i];
-      const tc    = _RANK_TXT[clrKey][i];
+      const barPct = maxAmt > 0 ? (amt/maxAmt*100).toFixed(1) : 0;
+      const bg = _REV_CLR[i]; const tc = _REV_TXT[i];
       const brand = (_oBrand[code]||'').slice(0,22);
       return `<div class="pl-rank-row">
         <div class="pl-rank-badge" style="background:${bg};color:${tc}">${i+1}</div>
         <div class="pl-rank-code">${code}</div>
         <div class="pl-rank-brand">${brand}</div>
-        <div class="pl-rank-bar-wrap"><div class="pl-rank-bar-fill" style="width:${pct}%;background:${bg}"></div></div>
+        <div class="pl-rank-bar-wrap"><div class="pl-rank-bar-fill" style="width:${barPct}%;background:${bg}"></div></div>
         <div class="pl-rank-amt">${_fmtK(amt)}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function _rankCostPctRows(items) {
+    if (!items.length) return '<p style="color:var(--muted);font-size:11px;padding:8px 0">No data</p>';
+    const maxPct = items[0][1];
+    return items.map(([code, pct], i) => {
+      const barPct = maxPct > 0 ? (pct/maxPct*100).toFixed(1) : 0;
+      const bg = _COST_CLR[i]; const tc = _COST_TXT[i];
+      const brand = (_oBrand[code]||'').slice(0,22);
+      return `<div class="pl-rank-row">
+        <div class="pl-rank-badge" style="background:${bg};color:${tc}">${i+1}</div>
+        <div class="pl-rank-code">${code}</div>
+        <div class="pl-rank-brand">${brand}</div>
+        <div class="pl-rank-bar-wrap"><div class="pl-rank-bar-fill" style="width:${barPct}%;background:${bg}"></div></div>
+        <div class="pl-rank-amt">${pct.toFixed(1)}%</div>
       </div>`;
     }).join('');
   }
@@ -11597,19 +11617,11 @@ function renderPLTab() {
     <div class="pl-rankings-grid">
       <div class="pl-rank-card">
         <div class="pl-rank-title">🏆 Top 5 Outlets — Revenue</div>
-        ${_rankRows(top5Rev,'topRev')}
+        ${_rankRevRows(top5Rev)}
       </div>
       <div class="pl-rank-card">
-        <div class="pl-rank-title">📉 Bottom 5 Outlets — Revenue</div>
-        ${_rankRows(bot5Rev,'botRev')}
-      </div>
-      <div class="pl-rank-card">
-        <div class="pl-rank-title">💸 Top 5 Outlets — Cost</div>
-        ${_rankRows(top5Cost,'topCost')}
-      </div>
-      <div class="pl-rank-card">
-        <div class="pl-rank-title">✅ Bottom 5 Outlets — Cost</div>
-        ${_rankRows(bot5Cost,'botCost')}
+        <div class="pl-rank-title">📊 Top 5 Outlets — Cost % of Revenue</div>
+        ${_rankCostPctRows(top5CostPct)}
       </div>
     </div>`;
 }
