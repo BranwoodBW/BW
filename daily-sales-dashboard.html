@@ -11098,9 +11098,14 @@ function renderPLTab() {
   const selMgr = new Set(getSel('fManager'));
   const selFC  = new Set(getSel('fFC'));
 
+  // Cap at current month — never show future months
+  const now = new Date();
+  const curMk = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
   // Single-pass: filter + group by month simultaneously
   const byMk = {};
   for (const r of BWPL_DATA) {
+    if (r.mk > curMk) continue;                          // skip future months
     const yr = +r.mk.split('-')[0];
     if (selYears.size && !selYears.has(yr)) continue;
     if (r.amt <= 0) continue;
