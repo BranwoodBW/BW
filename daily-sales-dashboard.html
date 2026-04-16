@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Daily Sales Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="pl_data.js"></script>
 <style>
   :root {
     --bg: #f8fafc; --card: #ffffff; --card2: #f1f5f9;
@@ -146,6 +147,22 @@
     .charts-grid { grid-template-columns:1fr; }
     .charts-row  { grid-template-columns:1fr; }
   }
+
+  /* ── P&L Tab ─────────────────────────────────────────── */
+  .pl-tbl { width:100%; border-collapse:collapse; font-size:11px; }
+  .pl-th { padding:7px 10px; text-align:right; white-space:nowrap; background:var(--card2); border-bottom:2px solid var(--border); font-size:10px; font-weight:600; color:var(--muted); }
+  .pl-th-label { padding:7px 10px; text-align:left; background:var(--card2); border-bottom:2px solid var(--border); font-size:10px; font-weight:600; color:var(--muted); min-width:160px; position:sticky; left:0; z-index:2; }
+  .pl-td { padding:5px 10px; text-align:right; border-bottom:1px solid var(--border); white-space:nowrap; }
+  .pl-td-label { padding:5px 10px; text-align:left; border-bottom:1px solid var(--border); white-space:nowrap; position:sticky; left:0; background:inherit; z-index:1; }
+  .pl-total-col { background:rgba(0,0,0,.03) !important; border-left:2px solid var(--border) !important; font-weight:600; }
+  .pl-section-hdr td { padding:8px 10px; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); background:var(--card2); border-top:2px solid var(--border); }
+  .pl-row-subtotal td { font-weight:700; background:rgba(99,102,241,.05); border-top:1px solid #c0cce0; border-bottom:2px solid #c0cce0; }
+  .pl-row-gross td { font-weight:700; background:rgba(22,161,99,.07); border-top:1px solid #16a16330; border-bottom:1px solid #16a16330; }
+  .pl-row-net td { font-weight:700; background:rgba(22,161,99,.12); border-top:2px solid #16a16350; font-size:12px; }
+  .pl-row-pct td { color:var(--muted); font-size:10px; background:rgba(0,0,0,.01); border-bottom:1px solid transparent; }
+  .pl-pos { color:#16a163; }
+  .pl-neg { color:#ef4444; }
+  .pl-pct-val { color:var(--muted); font-size:10px; }
 </style>
 </head>
 <body>
@@ -283,6 +300,7 @@
 <div class="tab-bar">
   <button class="tab-btn active" onclick="showTab('dashboard',this)">&#128202; Dashboard</button>
   <button class="tab-btn" onclick="showTab('daily',this)">&#128197; Daily &mdash; By Month</button>
+  <button class="tab-btn" onclick="showTab('pl',this)">&#128200; Monthly P&amp;L</button>
 </div>
 
 <!-- ══ TAB: DASHBOARD ══════════════════════════════════════════ -->
@@ -346,6 +364,25 @@
   </div>
 
 </div><!-- /tab-daily -->
+
+<!-- ══ TAB: MONTHLY P&L ════════════════════════════════════ -->
+<div id="tab-pl" class="main" style="display:none">
+
+  <div class="kpi-grid" id="pl-kpi-grid"></div>
+
+  <div class="charts-grid">
+    <div class="chart-card"><h3>Revenue vs Total Cost vs Net Profit</h3>
+      <div style="position:relative;height:280px"><canvas id="pl-trend-chart"></canvas></div></div>
+    <div class="chart-card"><h3>Monthly Cost Breakdown</h3>
+      <div style="position:relative;height:280px"><canvas id="pl-cost-chart"></canvas></div></div>
+  </div>
+
+  <div class="table-section">
+    <h3>Monthly P&amp;L Statement</h3>
+    <div class="tbl-wrap" id="pl-table"></div>
+  </div>
+
+</div><!-- /tab-pl -->
 
 </div><!-- /content -->
 </div><!-- /page -->
@@ -10398,7 +10435,9 @@ function showTab(id, btn) {
   btn.classList.add('active');
   document.getElementById('tab-dashboard').style.display = id==='dashboard' ? '' : 'none';
   document.getElementById('tab-daily').style.display     = id==='daily'     ? '' : 'none';
+  document.getElementById('tab-pl').style.display        = id==='pl'        ? '' : 'none';
   if (id==='daily') renderDailyTable();
+  if (id==='pl')    renderPLTab();
 }
 
 // ── POPULATE FILTERS ──────────────────────────────────────────────────────────
@@ -10707,9 +10746,8 @@ function render(){
 
 function applyFilters(){
   render();
-  if (document.getElementById('tab-daily').style.display !== 'none') {
-    renderDailyTable();
-  }
+  if (document.getElementById('tab-daily').style.display !== 'none') renderDailyTable();
+  if (document.getElementById('tab-pl').style.display    !== 'none') renderPLTab();
 }
 
 function resetFilters(){
@@ -10937,6 +10975,299 @@ reinitDashboard();
 
 // Auto-fetch live data on every page load
 fetchLiveData().catch(err => console.warn('Auto-refresh failed:', err));
+
+// ══ P&L TAB ════════════════════════════════════════════════════════════════════
+// Revenue + Costs → live from CY BRANWOOD Google Sheet (verified, reconciled monthly)
+// "2025 Data" and "2026 Data" tabs
+// Col O = MAIN CODE  (SALES / COGS / HR / FIXED / UTILITY / DELIVERY / OOC / MARKETING / HQ)
+// Col P = SUB CODE   (revenue channel or cost sub-category)
+// Col R = SG/AMT     (main allocated amount)
+// Col W = AMT        (additional individual transactions — mapped via BWPL_W_MAP)
+
+const BWPL_ID = '1HFm4S3QvJOG4u_pE8U9D8JSqwuX2Cs8qt9MHpzLsnbs';
+
+// W column ITEMS (col V) → MAIN CODE mapping
+const BWPL_W_MAP = {
+  'PRINTING':         'HQ',
+  'HQ SERVICE':       'HQ',
+  'HQ ENE':           'HQ',
+  'MAINTENANCE':      'FIXED',
+  'OUTLET TOOL':      'OOC',
+  'HR PC':            'HR',
+  'COGS PC':          'COGS',
+  'PESTCTRL':         'OOC',
+  'PF SHARING':       'FIXED',
+  'GAS':              'UTILITY',
+  'FC COIN EXCHANGE': 'FIXED',
+  'TRP GRAB':         'DELIVERY'
+};
+
+// CY Branwood FC code (col A) → sidebar fFC values
+const BWPL_FC_MAP = {'KPT':'Kopitiam','KOUFU':'Koufu','OTH':'Others','FJ':'FJ'};
+
+// Revenue sub-code → display label
+const BWPL_REV_LABELS = {
+  'FC SALE':'FC / Counter','CDC SALE':'CDC','GF SALE':'GrabFood',
+  'FP SALE':'Foodpanda','QLUB SALE':'QLUB','DVROO SALE':'Deliveroo',
+  'SHOPBACK SALE':'ShopBack','CASH':'Cash','OUR-BANK':'Bank Transfer',
+  'B-FC APP':'FC App','GRANT REBATE':'Grant Rebate'
+};
+const BWPL_REV_ORDER = ['FC SALE','CDC SALE','GF SALE','FP SALE','QLUB SALE','DVROO SALE','SHOPBACK SALE','CASH','OUR-BANK','B-FC APP','GRANT REBATE'];
+
+const BWPL_CC_ORDER  = ['COGS','HR','FIXED','UTILITY','DELIVERY','OOC','MARKETING','HQ'];
+const BWPL_CC_LABELS = {COGS:'COGS',HR:'HR',FIXED:'Fixed',UTILITY:'Utility',DELIVERY:'Delivery',OOC:'OOC',MARKETING:'Marketing',HQ:'HQ'};
+const BWPL_CC_COLORS = {COGS:'#5b8cff',HR:'#16a163',FIXED:'#f59e0b',UTILITY:'#8b5cf6',DELIVERY:'#ef4444',OOC:'#0ea5e9',MARKETING:'#ec4899',HQ:'#f97316'};
+
+let BWPL_DATA    = [];
+let BWPL_LOADED  = false;
+let BWPL_LOADING = false;
+let plCharts     = {};
+
+function bwplGDate(v) {
+  const m = String(v||'').match(/Date\((\d+),(\d+),/);
+  return m ? `${m[1]}-${String(+m[2]+1).padStart(2,'0')}` : null;
+}
+function plFmt(n) {
+  const a=Math.abs(n), s=n<0?'-':'';
+  return a>=1e6?s+'$'+(a/1e6).toFixed(2)+'M':a>=1e3?s+'$'+(a/1e3).toFixed(1)+'K':s+'$'+a.toFixed(0);
+}
+function plFmtFull(n) {
+  return (n<0?'-':'')+'$'+Math.abs(n).toLocaleString('en-SG',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+async function fetchBWPLData() {
+  if (BWPL_LOADED || BWPL_LOADING) return;
+  BWPL_LOADING = true;
+  // Select only the 10 columns we need & skip rows with no MAIN CODE
+  // A=FC, E=MGR, H=OUTLET, N=DATE, O=MAIN CODE,
+  // P=SUB CODE, R=SG/AMT, U=DATE-W, V=ITEMS, W=AMT
+  const tq = encodeURIComponent('select A,E,H,N,O,P,R,U,V,W where O is not null');
+  const base = `https://docs.google.com/spreadsheets/d/${BWPL_ID}/gviz/tq?tqx=out:json&tq=${tq}`;
+  const rows = [];
+  for (const sheet of ['2025 Data','2026 Data']) {
+    try {
+      const resp = await fetch(`${base}&sheet=${encodeURIComponent(sheet)}`);
+      const text = await resp.text();
+      const json = text.replace(/^[^\(]+\(/, '').replace(/\);?\s*$/, '');
+      const d = JSON.parse(json);
+      // After select, columns are reindexed 0–9:
+      // 0=FC, 1=MGR, 2=OUTLET, 3=DATE-N, 4=MAIN CODE, 5=SUB CODE,
+      // 6=SG/AMT, 7=DATE-U, 8=ITEMS, 9=AMT
+      for (const row of d.table.rows) {
+        const c       = row.c;
+        const fc      = c[0]?.v || null;
+        const mgr     = c[1]?.v || null;
+        const outlet  = c[2]?.v || null;
+        const dateN   = c[3]?.v || null;
+        const mainCode= c[4]?.v || null;
+        const subCode = c[5]?.v || null;
+        const sgAmt   = c[6]?.v || null;
+        const dateU   = c[7]?.v || null;
+        const vItem   = c[8]?.v || null;
+        const wAmt    = c[9]?.v || null;
+        if (!mainCode) continue;
+        const mkR = bwplGDate(dateN);
+        if (!mkR) continue;
+        if (sgAmt && sgAmt > 0) rows.push({mk:mkR, fc, mgr, outlet, mainCode, subCode:subCode||'', amt:sgAmt});
+        if (wAmt && wAmt > 0) {
+          const wMain = BWPL_W_MAP[vItem] || mainCode;
+          const mkW   = bwplGDate(dateU) || mkR;
+          rows.push({mk:mkW, fc, mgr, outlet, mainCode:wMain, subCode:vItem||'OTHER', amt:wAmt});
+        }
+      }
+    } catch(e) { console.warn('BW P&L fetch error:', sheet, e); }
+  }
+  BWPL_DATA   = rows;
+  BWPL_LOADED = true;
+  BWPL_LOADING = false;
+}
+
+function renderPLTab() {
+  const plDiv = document.getElementById('tab-pl');
+  if (!BWPL_LOADED) {
+    document.getElementById('pl-kpi-grid').innerHTML = '<p style="padding:12px;color:var(--muted);font-size:12px">⏳ Loading CY Branwood data…</p>';
+    fetchBWPLData().then(()=>renderPLTab()).catch(e=>{
+      document.getElementById('pl-kpi-grid').innerHTML = `<p style="padding:12px;color:#ef4444;font-size:12px">Failed to load: ${e.message}</p>`;
+    });
+    return;
+  }
+
+  const selYears = new Set(getSel('fYear').map(Number));
+  const {allowedO} = buildFilters();
+  const allowedOutletCodes = allowedO.size ? new Set([...allowedO].map(i=>OUTLETS[i])) : new Set();
+  const selMgr = new Set(getSel('fManager'));
+  const selFC  = new Set(getSel('fFC'));
+
+  // Single-pass: filter + group by month simultaneously
+  const byMk = {};
+  for (const r of BWPL_DATA) {
+    const yr = +r.mk.split('-')[0];
+    if (selYears.size && !selYears.has(yr)) continue;
+    if (r.amt <= 0) continue;
+    const mfc = BWPL_FC_MAP[r.fc] || r.fc;
+    if (selFC.size && r.fc && !selFC.has(mfc)) continue;
+    if (selMgr.size && r.mgr && !selMgr.has(r.mgr)) continue;
+    if (allowedOutletCodes.size && r.outlet && !allowedOutletCodes.has(r.outlet)) continue;
+    if (!byMk[r.mk]) byMk[r.mk] = [];
+    byMk[r.mk].push(r);
+  }
+
+  const months = Object.keys(byMk).sort();
+  const mkLabel = mk => {
+    const [y,mo]=mk.split('-');
+    return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+mo-1]+' '+y.slice(2);
+  };
+
+  function monthPL(mk) {
+    const rows = byMk[mk] || [];
+    const revBySub={}, costByMain={};
+    for (const r of rows) {
+      if (r.mainCode==='SALES') revBySub[r.subCode]   = (revBySub[r.subCode]||0)   + r.amt;
+      else                      costByMain[r.mainCode] = (costByMain[r.mainCode]||0) + r.amt;
+    }
+    const totalRev  = Object.values(revBySub).reduce((a,b)=>a+b,0);
+    const cogs      = costByMain['COGS']||0;
+    const grossP    = totalRev - cogs;
+    const totalCost = Object.values(costByMain).reduce((a,b)=>a+b,0);
+    const netP      = totalRev - totalCost;
+    return {totalRev,revBySub,costByMain,cogs,grossP,
+            gpPct:totalRev>0?(grossP/totalRev)*100:0,
+            totalCost,netP,netMargin:totalRev>0?(netP/totalRev)*100:0};
+  }
+
+  const plByMk={};
+  months.forEach(mk => { plByMk[mk]=monthPL(mk); });
+
+  // Grand totals
+  const tot={totalRev:0,cogs:0,grossP:0,totalCost:0,netP:0,revBySub:{},costByMain:{}};
+  months.forEach(mk=>{
+    const p=plByMk[mk];
+    tot.totalRev+=p.totalRev; tot.cogs+=p.cogs; tot.grossP+=p.grossP;
+    tot.totalCost+=p.totalCost; tot.netP+=p.netP;
+    Object.entries(p.revBySub).forEach(([k,v])=>{tot.revBySub[k]=(tot.revBySub[k]||0)+v;});
+    Object.entries(p.costByMain).forEach(([k,v])=>{tot.costByMain[k]=(tot.costByMain[k]||0)+v;});
+  });
+  tot.gpPct=tot.totalRev>0?(tot.grossP/tot.totalRev)*100:0;
+  tot.netMargin=tot.totalRev>0?(tot.netP/tot.totalRev)*100:0;
+  const avgNet=months.length?tot.netP/months.length:0;
+  const bestMk=months.length?months.reduce((a,b)=>plByMk[a].netP>=plByMk[b].netP?a:b):null;
+
+  // ── KPI Cards ────────────────────────────────────────────────────────────
+  document.getElementById('pl-kpi-grid').innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">Total Revenue</div><div class="kpi-value" style="color:var(--accent)">${plFmt(tot.totalRev)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Total Cost</div><div class="kpi-value" style="color:#ef4444">${plFmt(tot.totalCost)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Net Profit</div><div class="kpi-value" style="color:${tot.netP>=0?'#16a163':'#ef4444'}">${plFmt(tot.netP)}</div><div class="kpi-sub">${tot.netMargin.toFixed(1)}% margin</div></div>
+    <div class="kpi-card"><div class="kpi-label">Avg Net / Month</div><div class="kpi-value" style="color:${avgNet>=0?'#16a163':'#ef4444'}">${plFmt(avgNet)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Best Month</div><div class="kpi-value" style="font-size:18px">${bestMk?mkLabel(bestMk):'-'}</div><div class="kpi-sub">${bestMk?plFmt(plByMk[bestMk].netP):''}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Months</div><div class="kpi-value">${months.length}</div></div>`;
+
+  // ── Trend line chart ─────────────────────────────────────────────────────
+  const lineCtx = document.getElementById('pl-trend-chart');
+  if (plCharts.trend) plCharts.trend.destroy();
+  plCharts.trend = new Chart(lineCtx, {
+    type:'line',
+    data:{
+      labels:months.map(mkLabel),
+      datasets:[
+        {label:'Revenue',   data:months.map(m=>plByMk[m].totalRev),  borderColor:'#1a6fd8',backgroundColor:'rgba(26,111,216,.07)',borderWidth:2,pointRadius:3,tension:.3,fill:true},
+        {label:'Total Cost',data:months.map(m=>plByMk[m].totalCost), borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.04)',  borderWidth:2,pointRadius:3,tension:.3},
+        {label:'Net Profit',data:months.map(m=>plByMk[m].netP),      borderColor:'#16a163',backgroundColor:'rgba(22,161,99,.06)',  borderWidth:2.5,pointRadius:4,tension:.3,fill:true}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#777',font:{size:10},boxWidth:20,boxHeight:2}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+plFmtFull(c.raw)}}},
+      scales:{x:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#999',font:{size:10},maxRotation:45,autoSkip:false}},y:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#999',callback:v=>plFmt(v)}}}}
+  });
+
+  // ── Stacked cost bar ─────────────────────────────────────────────────────
+  const barCtx = document.getElementById('pl-cost-chart');
+  if (plCharts.cost) plCharts.cost.destroy();
+  plCharts.cost = new Chart(barCtx, {
+    type:'bar',
+    data:{
+      labels:months.map(mkLabel),
+      datasets:BWPL_CC_ORDER.map(cc=>({
+        label:BWPL_CC_LABELS[cc],
+        data:months.map(m=>plByMk[m].costByMain[cc]||0),
+        backgroundColor:BWPL_CC_COLORS[cc],
+        stack:'c',borderRadius:2
+      }))
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#777',font:{size:10},boxWidth:10,boxHeight:10}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+plFmtFull(c.raw)}}},
+      scales:{x:{stacked:true,grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#999',font:{size:10},maxRotation:45,autoSkip:false}},y:{stacked:true,grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#999',callback:v=>plFmt(v)}}}}
+  });
+
+  // ── P&L Statement table ──────────────────────────────────────────────────
+  const fmtC  = (v,bold) => { const cls=v<0?'pl-neg':v>0?'pl-pos':''; const inner=bold?`<strong>${plFmtFull(v)}</strong>`:plFmtFull(v); return `<td class="pl-td ${cls}">${inner}</td>`; };
+  const fmtT  = (v,bold) => { const cls=v<0?'pl-neg':v>0?'pl-pos':''; const inner=bold?`<strong>${plFmtFull(v)}</strong>`:plFmtFull(v); return `<td class="pl-td pl-total-col ${cls}">${inner}</td>`; };
+  const fmtP  = p => `<td class="pl-td pl-pct-val">${p.toFixed(1)}%</td>`;
+  const fmtPT = p => `<td class="pl-td pl-total-col pl-pct-val">${p.toFixed(1)}%</td>`;
+  const colSpan = months.length+2;
+
+  // Collect revenue sub-codes present in data, in preferred order
+  const allRevSubs = [...new Set(months.flatMap(mk=>(byMk[mk]||[]).filter(r=>r.mainCode==='SALES').map(r=>r.subCode)))]
+    .sort((a,b)=>{ const ai=BWPL_REV_ORDER.indexOf(a),bi=BWPL_REV_ORDER.indexOf(b); return (ai<0?999:ai)-(bi<0?999:bi); });
+
+  let h = `<table class="pl-tbl"><thead><tr><th class="pl-th-label">Item</th>`;
+  months.forEach(m=>h+=`<th class="pl-th">${mkLabel(m)}</th>`);
+  h += `<th class="pl-th pl-total-col">Total</th></tr></thead><tbody>`;
+
+  // Revenue
+  h += `<tr class="pl-section-hdr"><td colspan="${colSpan}">Revenue</td></tr>`;
+  for (const sub of allRevSubs) {
+    const mVals=months.map(m=>plByMk[m].revBySub[sub]||0);
+    const rowTot=mVals.reduce((a,b)=>a+b,0);
+    if (rowTot===0) continue;
+    h += `<tr><td class="pl-td-label">&nbsp;&nbsp;&nbsp;${BWPL_REV_LABELS[sub]||sub}</td>`;
+    mVals.forEach(v=>h+=fmtC(v,false));
+    h += fmtT(rowTot,false)+'</tr>';
+  }
+  h += `<tr class="pl-row-subtotal"><td class="pl-td-label">Total Revenue</td>`;
+  months.forEach(m=>h+=fmtC(plByMk[m].totalRev,true));
+  h += fmtT(tot.totalRev,true)+'</tr>';
+
+  // COGS + Gross Profit
+  h += `<tr class="pl-section-hdr"><td colspan="${colSpan}">Cost of Goods Sold</td></tr>`;
+  h += `<tr><td class="pl-td-label">&nbsp;&nbsp;&nbsp;COGS</td>`;
+  months.forEach(m=>h+=fmtC(plByMk[m].cogs,false));
+  h += fmtT(tot.cogs,false)+'</tr>';
+  h += `<tr class="pl-row-gross"><td class="pl-td-label">Gross Profit</td>`;
+  months.forEach(m=>h+=fmtC(plByMk[m].grossP,true));
+  h += fmtT(tot.grossP,true)+'</tr>';
+  h += `<tr class="pl-row-pct"><td class="pl-td-label pl-pct-val">&nbsp;&nbsp;&nbsp;GP Margin</td>`;
+  months.forEach(m=>h+=fmtP(plByMk[m].gpPct));
+  h += fmtPT(tot.gpPct)+'</tr>';
+
+  // Operating Expenses
+  h += `<tr class="pl-section-hdr"><td colspan="${colSpan}">Operating Expenses</td></tr>`;
+  for (const cc of BWPL_CC_ORDER.filter(c=>c!=='COGS')) {
+    const mVals=months.map(m=>plByMk[m].costByMain[cc]||0);
+    const rowTot=mVals.reduce((a,b)=>a+b,0);
+    if (rowTot===0) continue;
+    h += `<tr><td class="pl-td-label">&nbsp;&nbsp;&nbsp;${BWPL_CC_LABELS[cc]}</td>`;
+    mVals.forEach(v=>h+=fmtC(v,false));
+    h += fmtT(rowTot,false)+'</tr>';
+  }
+  const mOpEx=months.map(m=>BWPL_CC_ORDER.filter(c=>c!=='COGS').reduce((s,c)=>s+(plByMk[m].costByMain[c]||0),0));
+  const tOpEx=BWPL_CC_ORDER.filter(c=>c!=='COGS').reduce((s,c)=>s+(tot.costByMain[c]||0),0);
+  h += `<tr class="pl-row-subtotal"><td class="pl-td-label">Total Expenses</td>`;
+  mOpEx.forEach(v=>h+=fmtC(v,true));
+  h += fmtT(tOpEx,true)+'</tr>';
+
+  // Net Profit
+  h += `<tr class="pl-row-net"><td class="pl-td-label">Net Profit</td>`;
+  months.forEach(m=>h+=fmtC(plByMk[m].netP,true));
+  h += fmtT(tot.netP,true)+'</tr>';
+  h += `<tr class="pl-row-pct"><td class="pl-td-label pl-pct-val">&nbsp;&nbsp;&nbsp;Net Margin</td>`;
+  months.forEach(m=>h+=fmtP(plByMk[m].netMargin));
+  h += fmtPT(tot.netMargin)+'</tr>';
+
+  h += '</tbody></table>';
+  document.getElementById('pl-table').innerHTML = h;
+}
+
+fetchBWPLData().catch(err => console.warn('BW P&L prefetch failed:', err));
 
 </script>
 </body>
