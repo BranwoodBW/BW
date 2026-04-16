@@ -195,6 +195,22 @@
   .pl-kpi-lbl  { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
   .pl-kpi-val  { font-size:24px; font-weight:800; color:var(--pkc,var(--text)); margin:5px 0 3px; line-height:1; }
   .pl-kpi-sub  { font-size:11px; color:var(--muted); }
+  /* ── Outlet Rankings ──────────────────────────────────────────────── */
+  .pl-rankings-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:22px; }
+  .pl-rank-card  { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
+  .pl-rank-title { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px;
+                   color:var(--muted); margin-bottom:10px; display:flex; align-items:center; gap:5px; }
+  .pl-rank-row   { display:flex; align-items:center; gap:8px; padding:5px 0;
+                   border-bottom:1px solid var(--border); }
+  .pl-rank-row:last-child { border-bottom:none; }
+  .pl-rank-badge { width:18px; height:18px; border-radius:50%; font-size:9px; font-weight:700;
+                   display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .pl-rank-code  { font-size:11px; font-weight:600; width:68px; flex-shrink:0; color:var(--text); }
+  .pl-rank-brand { font-size:10px; color:var(--muted); flex:1; overflow:hidden;
+                   text-overflow:ellipsis; white-space:nowrap; }
+  .pl-rank-bar-wrap { width:64px; height:5px; background:var(--border); border-radius:3px; flex-shrink:0; }
+  .pl-rank-bar-fill { height:5px; border-radius:3px; }
+  .pl-rank-amt   { font-size:11px; font-weight:700; width:58px; text-align:right; flex-shrink:0; }
 </style>
 </head>
 <body>
@@ -408,6 +424,8 @@
     <div class="chart-card"><h3>Monthly Cost Breakdown</h3>
       <div style="position:relative;height:280px"><canvas id="pl-cost-chart"></canvas></div></div>
   </div>
+
+  <div id="pl-outlet-rankings"></div>
 
   <div class="table-section">
     <h3>Monthly P&amp;L Statement</h3>
@@ -11068,13 +11086,55 @@ function plFmtFull(n) {
   return (n<0?'-':'')+'$'+Math.abs(n).toLocaleString('en-SG',{minimumFractionDigits:2,maximumFractionDigits:2});
 }
 
+// ── Outlet Master: fetch from CTM sheet (canonical source) ───────────────────
+// CTM GID 408242429 — columns H,I,O,P,T,Z mapped after select → 0–5
+// 0=OutletCode(H), 1=Operating(I), 2=FC(O), 3=Brand(P), 4=Mgr(T), 5=ActiveFlag(Z)
+async function fetchOutletMaster() {
+  const CTM_GID = '408242429';
+  const tq  = encodeURIComponent('select H,I,O,P,T,Z where H is not null');
+  const url = `https://docs.google.com/spreadsheets/d/${BWPL_ID}/gviz/tq?tqx=out:json&tq=${tq}&gid=${CTM_GID}`;
+  try {
+    const resp = await fetch(url);
+    const text = await resp.text();
+    const json = text.replace(/^[^\(]+\(/, '').replace(/\);?\s*$/, '');
+    const d    = JSON.parse(json);
+    const meta = {};
+    for (const row of d.table.rows) {
+      const c          = row.c;
+      const outletCode = c[0]?.v;          if (!outletCode) continue;
+      // Skip header row & non-operating outlets (col I must be 'Y')
+      if (c[1]?.v !== 'Y') continue;
+      const brandRaw   = c[3]?.v || null;
+      const activeFlag = c[5]?.v || null;
+      // Skill rule: both brand (col P) AND active flag (col Z) must be filled
+      if (!brandRaw || !activeFlag) continue;
+      const fc    = c[2]?.v || null;       // food court code: KPT, KOUFU, FJ, OTH
+      const brand = brandRaw.split(' - ')[0].trim();
+      const mgr   = c[4]?.v || null;
+      meta[outletCode] = { fc, brand, mgr };
+    }
+    console.log(`Outlet master loaded: ${Object.keys(meta).length} outlets from CTM sheet`);
+    return meta;
+  } catch(e) {
+    console.warn('Outlet master fetch error (CTM):', e);
+    return null;
+  }
+}
+
 async function fetchBWPLData() {
   if (BWPL_LOADED || BWPL_LOADING) return;
   BWPL_LOADING = true;
-  // Select 11 columns (includes B=Brand) & skip rows with no MAIN CODE
-  // A=FC, B=Brand, E=MGR, H=OUTLET, N=DATE, O=MAIN CODE,
-  // P=SUB CODE, R=SG/AMT, U=DATE-W, V=ITEMS, W=AMT
-  const tq = encodeURIComponent('select A,B,E,H,N,O,P,R,U,V,W where O is not null');
+
+  // ── 1. Fetch outlet master from CTM sheet ──────────────────────────────────
+  const ctmMeta = await fetchOutletMaster();
+
+  // ── 2. Fetch P&L rows from 2025 Data & 2026 Data sheets ───────────────────
+  // The sheet has 3 tables separated by black columns:
+  //   Table A–H  : master info  — A=FC, B=Brand, E=MGR, H=Outlet(master ref)
+  //   Table J–R  : SG/AMT txns  — M=Outlet code, N=Date, O=Main code, P=Sub code, R=SG/AMT
+  //   Table T–W  : W/AMT txns   — T=Outlet code (OL), U=Date, V=Items, W=AMT
+  // Each transaction table has its OWN outlet code that references back to col H in A–H.
+  const tq = encodeURIComponent('select A,B,E,M,N,O,P,R,T,U,V,W where O is not null');
   const base = `https://docs.google.com/spreadsheets/d/${BWPL_ID}/gviz/tq?tqx=out:json&tq=${tq}`;
   const rows = [];
   for (const sheet of ['2025 Data','2026 Data']) {
@@ -11083,41 +11143,63 @@ async function fetchBWPLData() {
       const text = await resp.text();
       const json = text.replace(/^[^\(]+\(/, '').replace(/\);?\s*$/, '');
       const d = JSON.parse(json);
-      // After select, columns are reindexed 0–10:
-      // 0=FC(A), 1=Brand(B), 2=MGR(E), 3=OUTLET(H), 4=DATE(N), 5=MAIN CODE(O),
-      // 6=SUB CODE(P), 7=SG/AMT(R), 8=DATE-W(U), 9=ITEMS(V), 10=AMT(W)
+      // After select, columns are reindexed 0–11:
+      // 0=FC(A), 1=Brand(B), 2=MGR(E), 3=Outlet-JR(M), 4=DATE(N), 5=MAIN CODE(O),
+      // 6=SUB CODE(P), 7=SG/AMT(R), 8=Outlet-TW(T/OL), 9=DATE-W(U), 10=ITEMS(V), 11=AMT(W)
       for (const row of d.table.rows) {
-        const c        = row.c;
-        const fc       = c[0]?.v || null;
-        const brand    = (c[1]?.v || '').split(' - ')[0].trim() || null;
-        const mgr      = c[2]?.v || null;
-        const outlet   = c[3]?.v || null;
-        const dateN    = c[4]?.v || null;
-        const mainCode = c[5]?.v || null;
-        const subCode  = c[6]?.v || null;
-        const sgAmt    = c[7]?.v || null;
-        const dateU    = c[8]?.v || null;
-        const vItem    = c[9]?.v || null;
-        const wAmt     = c[10]?.v || null;
+        const c         = row.c;
+        const outletM   = c[3]?.v  || null;   // Table J–R outlet code (col M)
+        const outletT   = c[8]?.v  || null;   // Table T–W outlet code (col T / OL)
+        const dateN     = c[4]?.v  || null;
+        const mainCode  = c[5]?.v  || null;
+        const subCode   = c[6]?.v  || null;
+        const sgAmt     = c[7]?.v  || null;
+        const dateU     = c[9]?.v  || null;
+        const vItem     = c[10]?.v || null;
+        const wAmt      = c[11]?.v || null;
         if (!mainCode) continue;
         const mkR = bwplGDate(dateN);
         if (!mkR) continue;
-        if (sgAmt && sgAmt > 0) rows.push({mk:mkR, fc, brand, mgr, outlet, mainCode, subCode:subCode||'', amt:sgAmt});
+
+        // Look up FC/brand/mgr from CTM master for each outlet code.
+        // Fall back to cols A/B/E (populated in template rows 1-130).
+        const ctmM  = outletM ? (ctmMeta?.[outletM] || null) : null;
+        const fc    = ctmM?.fc    || c[0]?.v || null;
+        const brand = ctmM?.brand || (c[1]?.v || '').split(' - ')[0].trim() || null;
+        const mgr   = ctmM?.mgr   || c[2]?.v || null;
+
+        if (sgAmt && sgAmt > 0)
+          rows.push({mk:mkR, fc, brand, mgr, outlet:outletM, mainCode, subCode:subCode||'', amt:sgAmt});
+
         if (wAmt && wAmt > 0) {
-          const wMain = BWPL_W_MAP[vItem] || mainCode;
-          const mkW   = bwplGDate(dateU) || mkR;
-          rows.push({mk:mkW, fc, brand, mgr, outlet, mainCode:wMain, subCode:vItem||'OTHER', amt:wAmt});
+          // W-transaction: use col T outlet — look up its own FC/brand/mgr from CTM
+          const ctmT   = outletT ? (ctmMeta?.[outletT] || null) : null;
+          const wFc    = ctmT?.fc    || null;
+          const wBrand = ctmT?.brand || null;
+          const wMgr   = ctmT?.mgr   || null;
+          const wMain  = BWPL_W_MAP[vItem] || mainCode;
+          const mkW    = bwplGDate(dateU) || mkR;
+          rows.push({mk:mkW, fc:wFc, brand:wBrand, mgr:wMgr, outlet:outletT, mainCode:wMain, subCode:vItem||'OTHER', amt:wAmt});
         }
       }
     } catch(e) { console.warn('BW P&L fetch error:', sheet, e); }
   }
   BWPL_DATA = rows;
-  // Build outlet master from rows that have an outlet code
-  BWPL_OUTLET_META = {};
-  rows.forEach(r => {
-    if (r.outlet && !BWPL_OUTLET_META[r.outlet])
-      BWPL_OUTLET_META[r.outlet] = {fc: r.fc, brand: r.brand, mgr: r.mgr};
-  });
+
+  // ── 3. Build BWPL_OUTLET_META ──────────────────────────────────────────────
+  // Prefer CTM sheet (canonical outlet master). Fall back to P&L row data.
+  if (ctmMeta && Object.keys(ctmMeta).length > 0) {
+    BWPL_OUTLET_META = ctmMeta;
+  } else {
+    // Fallback: derive from P&L rows (rows 1–130 have A-H populated)
+    BWPL_OUTLET_META = {};
+    rows.forEach(r => {
+      if (r.outlet && !BWPL_OUTLET_META[r.outlet])
+        BWPL_OUTLET_META[r.outlet] = {fc: r.fc, brand: r.brand, mgr: r.mgr};
+    });
+    console.warn('Using P&L-derived outlet meta (CTM fetch failed)');
+  }
+
   BWPL_LOADED  = true;
   BWPL_LOADING = false;
 }
@@ -11143,21 +11225,26 @@ function renderPLTab() {
   const selMgr     = new Set(getSel('fManager'));
   const selFC      = new Set(getSel('fFC'));
 
-  // Build sets of BWPL-known outlets/brands/managers (so we only filter when
-  // the sidebar actually has a checkbox for that value).
-  const BWPL_KNOWN_OUTLETS  = new Set(Object.keys(BWPL_OUTLET_META));
-  const BWPL_KNOWN_BRANDS   = new Set(Object.values(BWPL_OUTLET_META).map(m=>m.brand).filter(Boolean));
-  const BWPL_KNOWN_MGRS     = new Set(Object.values(BWPL_OUTLET_META).map(m=>m.mgr).filter(Boolean));
+  // Outlet master keys
+  const BWPL_KNOWN_OUTLETS = new Set(Object.keys(BWPL_OUTLET_META));
 
-  // Pre-compute which BWPL outlet codes are allowed given the sidebar selection.
-  // An outlet passes if it matches outlet, brand, manager AND food court filters.
+  // All values that exist in each sidebar filter (checked OR unchecked).
+  // Used so we only filter a value when the sidebar actually has a checkbox for it —
+  // values not known to the sidebar (e.g. CK brand) always pass through.
+  const SIDEBAR_KNOWN_OUTLETS = new Set(Array.from(document.querySelectorAll('#fOutlet input')).map(cb=>cb.value));
+  const SIDEBAR_KNOWN_BRANDS  = new Set(Array.from(document.querySelectorAll('#fBrand input')).map(cb=>cb.value));
+  const SIDEBAR_KNOWN_MGRS    = new Set(Array.from(document.querySelectorAll('#fManager input')).map(cb=>cb.value));
+  const SIDEBAR_KNOWN_FC      = new Set(Array.from(document.querySelectorAll('#fFC input')).map(cb=>cb.value));
+  // Note: FC codes in CTM (KPT, KOUFU, FJ, OTH) match sidebar values directly — no translation needed.
+
+  // Pre-compute which BWPL outlet codes pass the sidebar filters.
+  // Only applies filter when the sidebar has a checkbox for that value.
   const allowedBWPLOutlets = new Set();
   for (const [code, meta] of Object.entries(BWPL_OUTLET_META)) {
-    const mfc = BWPL_FC_MAP[meta.fc] || meta.fc || '';
-    if (selOutlets.size && !selOutlets.has(code))       continue;
-    if (selBrands.size  && meta.brand && !selBrands.has(meta.brand)) continue;
-    if (selMgr.size     && meta.mgr   && !selMgr.has(meta.mgr))     continue;
-    if (selFC.size      && meta.fc    && !selFC.has(mfc))            continue;
+    if (selOutlets.size && SIDEBAR_KNOWN_OUTLETS.has(code)       && !selOutlets.has(code))          continue;
+    if (selBrands.size  && meta.brand && SIDEBAR_KNOWN_BRANDS.has(meta.brand) && !selBrands.has(meta.brand)) continue;
+    if (selMgr.size     && meta.mgr   && SIDEBAR_KNOWN_MGRS.has(meta.mgr)     && !selMgr.has(meta.mgr))     continue;
+    if (selFC.size      && meta.fc    && SIDEBAR_KNOWN_FC.has(meta.fc)         && !selFC.has(meta.fc))       continue;
     allowedBWPLOutlets.add(code);
   }
   // Whether any per-outlet filter is actually active
@@ -11189,11 +11276,8 @@ function renderPLTab() {
     if (r.outlet && BWPL_KNOWN_OUTLETS.has(r.outlet)) {
       if (outletFilterActive && !allowedBWPLOutlets.has(r.outlet)) continue;
     } else if (!r.outlet) {
-      // Company-level row — still apply Food Court filter via FC column if present
-      if (selFC.size && r.fc) {
-        const mfc = BWPL_FC_MAP[r.fc] || r.fc;
-        if (!selFC.has(mfc)) continue;
-      }
+      // Company-level row — apply FC filter via FC column (raw code matches sidebar directly)
+      if (selFC.size && r.fc && SIDEBAR_KNOWN_FC.has(r.fc) && !selFC.has(r.fc)) continue;
     }
     // Income Source filter: only restrict mapped SALES sub-codes
     if (r.mainCode === 'SALES' && allowedRevSubs && MAPPED_SUBS.has(r.subCode)) {
@@ -11448,6 +11532,86 @@ function renderPLTab() {
 
   h += '</tbody></table>';
   document.getElementById('pl-table').innerHTML = h;
+
+  // ── OUTLET RANKINGS ───────────────────────────────────────────────────────
+  // Aggregate revenue & cost per outlet across all filtered months
+  const _oRev  = {};   // outlet → total revenue
+  const _oCost = {};   // outlet → total cost
+  const _oBrand= {};   // outlet → brand label
+  for (const mk of months) {
+    for (const r of (byMk[mk] || [])) {
+      if (!r.outlet) continue;
+      if (!_oBrand[r.outlet]) _oBrand[r.outlet] = r.brand || r.outlet;
+      if (r.mainCode === 'SALES') _oRev[r.outlet]  = (_oRev[r.outlet]  || 0) + r.amt;
+      else                        _oCost[r.outlet] = (_oCost[r.outlet] || 0) + r.amt;
+    }
+  }
+
+  const _sortD  = obj => Object.entries(obj).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+  const sortedRev  = _sortD(_oRev);
+  const sortedCost = _sortD(_oCost);
+
+  const top5Rev   = sortedRev.slice(0,5);
+  const bot5Rev   = [...sortedRev].reverse().slice(0,5);
+  const top5Cost  = sortedCost.slice(0,5);
+  const bot5Cost  = [...sortedCost].reverse().slice(0,5);
+
+  const _RANK_CLR = {
+    topRev:  ['#16a163','#22c55e','#4ade80','#86efac','#bbf7d0'],
+    botRev:  ['#ef4444','#f87171','#fca5a5','#fecaca','#fee2e2'],
+    topCost: ['#f97316','#fb923c','#fdba74','#fed7aa','#ffedd5'],
+    botCost: ['#8b5cf6','#a78bfa','#c4b5fd','#ddd6fe','#ede9fe'],
+  };
+  const _RANK_TXT = { // text colour for badge (dark for pale shades)
+    topRev: ['#fff','#fff','#fff','#16a163','#16a163'],
+    botRev: ['#fff','#fff','#fff','#ef4444','#ef4444'],
+    topCost:['#fff','#fff','#fff','#f97316','#f97316'],
+    botCost:['#fff','#fff','#fff','#6d28d9','#6d28d9'],
+  };
+
+  function _fmtK(n) {
+    if (n >= 1e6) return '$'+(n/1e6).toFixed(2)+'M';
+    if (n >= 1e3) return '$'+(n/1e3).toFixed(1)+'K';
+    return '$'+n.toFixed(0);
+  }
+
+  function _rankRows(items, clrKey) {
+    if (!items.length) return '<p style="color:var(--muted);font-size:11px;padding:8px 0">No data</p>';
+    const maxAmt = items[0][1];
+    return items.map(([code, amt], i) => {
+      const pct   = maxAmt > 0 ? (amt/maxAmt*100).toFixed(1) : 0;
+      const bg    = _RANK_CLR[clrKey][i];
+      const tc    = _RANK_TXT[clrKey][i];
+      const brand = (_oBrand[code]||'').slice(0,22);
+      return `<div class="pl-rank-row">
+        <div class="pl-rank-badge" style="background:${bg};color:${tc}">${i+1}</div>
+        <div class="pl-rank-code">${code}</div>
+        <div class="pl-rank-brand">${brand}</div>
+        <div class="pl-rank-bar-wrap"><div class="pl-rank-bar-fill" style="width:${pct}%;background:${bg}"></div></div>
+        <div class="pl-rank-amt">${_fmtK(amt)}</div>
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('pl-outlet-rankings').innerHTML = `
+    <div class="pl-rankings-grid">
+      <div class="pl-rank-card">
+        <div class="pl-rank-title">🏆 Top 5 Outlets — Revenue</div>
+        ${_rankRows(top5Rev,'topRev')}
+      </div>
+      <div class="pl-rank-card">
+        <div class="pl-rank-title">📉 Bottom 5 Outlets — Revenue</div>
+        ${_rankRows(bot5Rev,'botRev')}
+      </div>
+      <div class="pl-rank-card">
+        <div class="pl-rank-title">💸 Top 5 Outlets — Cost</div>
+        ${_rankRows(top5Cost,'topCost')}
+      </div>
+      <div class="pl-rank-card">
+        <div class="pl-rank-title">✅ Bottom 5 Outlets — Cost</div>
+        ${_rankRows(bot5Cost,'botCost')}
+      </div>
+    </div>`;
 }
 
 fetchBWPLData().catch(err => console.warn('BW P&L prefetch failed:', err));
