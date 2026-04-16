@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Daily Sales Dashboard</title>
+<title>Outlet Daily Sales &amp; Monthly P&amp;L</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="pl_data.js"></script>
 <style>
@@ -177,6 +177,24 @@
   /* Collapsible section toggle arrow */
   .pl-toggle     { float:right; margin-right:4px; display:inline-block; transition:transform .2s; }
   .pl-toggle.collapsed { transform:rotate(-90deg); }
+  /* Table row shading by section */
+  tr[data-sec="rev"]  > td { background:rgba(26,111,216,.04); }
+  tr[data-sec="cogs"] > td { background:rgba(239,100,0,.05); }
+  tr[data-sec="opex"] > td { background:rgba(99,102,241,.04); }
+  tr[data-sec="rev"]:hover  > td,
+  tr[data-sec="cogs"]:hover > td,
+  tr[data-sec="opex"]:hover > td { filter:brightness(.97); }
+  /* P&L KPI banner cards */
+  .pl-kpi-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(165px,1fr)); gap:12px; margin-bottom:22px; }
+  .pl-kpi { position:relative; overflow:hidden; background:var(--card); border:1px solid var(--border);
+             border-radius:12px; padding:16px 18px; box-shadow:0 1px 4px rgba(0,0,0,.07);
+             border-left:4px solid var(--pkc,#c4c9d4); }
+  .pl-kpi::after { content:''; position:absolute; top:-12px; right:-12px; width:64px; height:64px;
+                   background:var(--pkc,#c4c9d4); opacity:.08; border-radius:50%; }
+  .pl-kpi-icon { font-size:18px; margin-bottom:6px; line-height:1; }
+  .pl-kpi-lbl  { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  .pl-kpi-val  { font-size:24px; font-weight:800; color:var(--pkc,var(--text)); margin:5px 0 3px; line-height:1; }
+  .pl-kpi-sub  { font-size:11px; color:var(--muted); }
 </style>
 </head>
 <body>
@@ -185,7 +203,7 @@
 
 <div class="header">
   <div>
-    <h1>&#127836; Daily Sales Dashboard</h1>
+    <h1>&#127836; Outlet Daily Sales &amp; Monthly P&amp;L</h1>
     <div class="sub">All outlets &middot; 2025&ndash;2026 &middot; CDC / FC Counter / Qlub / Foodpanda / GrabFood / Deliveroo / Shopback</div>
   </div>
   <div class="last-updated">
@@ -11106,11 +11124,22 @@ function renderPLTab() {
     return;
   }
 
-  const selYears = new Set(getSel('fYear').map(Number));
+  const selYears  = new Set(getSel('fYear').map(Number));
+  const selMonths = new Set(getSel('fMonth'));           // "YYYY-MM" values
   const {allowedO} = buildFilters();
   const allowedOutletCodes = allowedO.size ? new Set([...allowedO].map(i=>OUTLETS[i])) : new Set();
-  const selMgr = new Set(getSel('fManager'));
-  const selFC  = new Set(getSel('fFC'));
+  const selMgr    = new Set(getSel('fManager'));
+  const selFC     = new Set(getSel('fFC'));
+  // Income Source → BWPL revenue sub-code mapping
+  const SRC_TO_SUB = {'CDC':'CDC SALE','FC Counter':'FC SALE','QLUB':'QLUB SALE',
+                      'FP':'FP SALE','GF':'GF SALE','DVROO':'DVROO SALE','SHOPBACK':'SHOPBACK SALE'};
+  const MAPPED_SUBS = new Set(Object.values(SRC_TO_SUB)); // sub-codes that have a source mapping
+  const selSrcs   = new Set(getSel('fSource'));
+  // Build set of allowed revenue sub-codes from income source filter
+  // (null = no src filter; sub-codes not in map like CASH/B-FC APP always pass)
+  const allowedRevSubs = selSrcs.size
+    ? new Set(Object.entries(SRC_TO_SUB).filter(([s])=>selSrcs.has(s)).map(([,v])=>v))
+    : null;
 
   // Cap at current month — never show future months
   const now = new Date();
@@ -11121,12 +11150,18 @@ function renderPLTab() {
   for (const r of BWPL_DATA) {
     if (r.mk > curMk) continue;                          // skip future months
     const yr = +r.mk.split('-')[0];
-    if (selYears.size && !selYears.has(yr)) continue;
+    if (selYears.size  && !selYears.has(yr))   continue;
+    if (selMonths.size && !selMonths.has(r.mk)) continue;
     if (r.amt <= 0) continue;
     const mfc = BWPL_FC_MAP[r.fc] || r.fc;
     if (selFC.size && r.fc && !selFC.has(mfc)) continue;
     if (selMgr.size && r.mgr && !selMgr.has(r.mgr)) continue;
     if (allowedOutletCodes.size && r.outlet && !allowedOutletCodes.has(r.outlet)) continue;
+    // Income Source filter: only restrict SALES rows whose sub-code has a source mapping
+    // (CASH, B-FC APP, OUR-BANK etc. are not in the source map and always pass through)
+    if (r.mainCode === 'SALES' && allowedRevSubs && MAPPED_SUBS.has(r.subCode)) {
+      if (!allowedRevSubs.has(r.subCode)) continue;
+    }
     if (!byMk[r.mk]) byMk[r.mk] = [];
     byMk[r.mk].push(r);
   }
@@ -11175,13 +11210,45 @@ function renderPLTab() {
   const bestMk=months.length?months.reduce((a,b)=>plByMk[a].netP>=plByMk[b].netP?a:b):null;
 
   // ── KPI Cards ────────────────────────────────────────────────────────────
+  const netC  = tot.netP  >= 0 ? '#16a163' : '#ef4444';
+  const avgC  = avgNet    >= 0 ? '#16a163' : '#ef4444';
+  const gpC   = tot.grossP>= 0 ? '#16a163' : '#ef4444';
+  document.getElementById('pl-kpi-grid').className = 'pl-kpi-grid';
   document.getElementById('pl-kpi-grid').innerHTML = `
-    <div class="kpi-card"><div class="kpi-label">Total Revenue</div><div class="kpi-value" style="color:var(--accent)">${plFmt(tot.totalRev)}</div></div>
-    <div class="kpi-card"><div class="kpi-label">Total Cost</div><div class="kpi-value" style="color:#ef4444">${plFmt(tot.totalCost)}</div></div>
-    <div class="kpi-card"><div class="kpi-label">Net Profit</div><div class="kpi-value" style="color:${tot.netP>=0?'#16a163':'#ef4444'}">${plFmt(tot.netP)}</div><div class="kpi-sub">${tot.netMargin.toFixed(1)}% margin</div></div>
-    <div class="kpi-card"><div class="kpi-label">Avg Net / Month</div><div class="kpi-value" style="color:${avgNet>=0?'#16a163':'#ef4444'}">${plFmt(avgNet)}</div></div>
-    <div class="kpi-card"><div class="kpi-label">Best Month</div><div class="kpi-value" style="font-size:18px">${bestMk?mkLabel(bestMk):'-'}</div><div class="kpi-sub">${bestMk?plFmt(plByMk[bestMk].netP):''}</div></div>
-    <div class="kpi-card"><div class="kpi-label">Months</div><div class="kpi-value">${months.length}</div></div>`;
+    <div class="pl-kpi" style="--pkc:#1a6fd8">
+      <div class="pl-kpi-icon">💰</div>
+      <div class="pl-kpi-lbl">Total Revenue</div>
+      <div class="pl-kpi-val">${plFmt(tot.totalRev)}</div>
+    </div>
+    <div class="pl-kpi" style="--pkc:#f59e0b">
+      <div class="pl-kpi-icon">🧾</div>
+      <div class="pl-kpi-lbl">Total Cost</div>
+      <div class="pl-kpi-val">${plFmt(tot.totalCost)}</div>
+    </div>
+    <div class="pl-kpi" style="--pkc:${gpC}">
+      <div class="pl-kpi-icon">📦</div>
+      <div class="pl-kpi-lbl">Gross Profit</div>
+      <div class="pl-kpi-val">${plFmt(tot.grossP)}</div>
+      <div class="pl-kpi-sub">${tot.gpPct.toFixed(1)}% GP margin</div>
+    </div>
+    <div class="pl-kpi" style="--pkc:${netC}">
+      <div class="pl-kpi-icon">${tot.netP>=0?'📈':'📉'}</div>
+      <div class="pl-kpi-lbl">Net Profit</div>
+      <div class="pl-kpi-val">${plFmt(tot.netP)}</div>
+      <div class="pl-kpi-sub">${tot.netMargin.toFixed(1)}% net margin</div>
+    </div>
+    <div class="pl-kpi" style="--pkc:${avgC}">
+      <div class="pl-kpi-icon">📅</div>
+      <div class="pl-kpi-lbl">Avg Net / Month</div>
+      <div class="pl-kpi-val">${plFmt(avgNet)}</div>
+      <div class="pl-kpi-sub">over ${months.length} months</div>
+    </div>
+    <div class="pl-kpi" style="--pkc:#8b5cf6">
+      <div class="pl-kpi-icon">🏆</div>
+      <div class="pl-kpi-lbl">Best Month</div>
+      <div class="pl-kpi-val" style="font-size:19px">${bestMk?mkLabel(bestMk):'-'}</div>
+      <div class="pl-kpi-sub">${bestMk?plFmt(plByMk[bestMk].netP):''}</div>
+    </div>`;
 
   // ── Trend line chart (oldest→newest on x-axis) ───────────────────────────
   const lineCtx = document.getElementById('pl-trend-chart');
