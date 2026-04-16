@@ -155,7 +155,7 @@
   .pl-td { padding:5px 10px; text-align:right; border-bottom:1px solid var(--border); white-space:nowrap; }
   .pl-td-label { padding:5px 10px; text-align:left; border-bottom:1px solid var(--border); white-space:nowrap; position:sticky; left:0; background:inherit; z-index:1; }
   .pl-total-col { background:rgba(0,0,0,.03) !important; border-left:2px solid var(--border) !important; font-weight:600; }
-  .pl-section-hdr td { padding:8px 10px; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); background:var(--card2); border-top:2px solid var(--border); }
+  .pl-section-hdr td { padding:8px 10px; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); background:var(--card2); border-top:2px solid var(--border); cursor:pointer; user-select:none; }
   .pl-row-subtotal td { font-weight:700; background:rgba(99,102,241,.05); border-top:1px solid #c0cce0; border-bottom:2px solid #c0cce0; }
   .pl-row-gross td { font-weight:700; background:rgba(22,161,99,.07); border-top:1px solid #16a16330; border-bottom:1px solid #16a16330; }
   .pl-row-net td { font-weight:700; background:rgba(22,161,99,.12); border-top:2px solid #16a16350; font-size:12px; }
@@ -163,6 +163,20 @@
   .pl-pos { color:#16a163; }
   .pl-neg { color:#ef4444; }
   .pl-pct-val { color:var(--muted); font-size:10px; }
+  /* P&L value colour roles */
+  .pl-rev-val    { color:#1a6fd8; }
+  .pl-cost-val   { color:#6b7280; }
+  .pl-profit-pos { color:#16a163; }
+  .pl-profit-neg { color:#ef4444; }
+  /* MoM badge */
+  .pl-cell-wrap  { display:flex; flex-direction:column; align-items:flex-end; gap:0; }
+  .pl-mom        { font-size:9px; font-weight:600; line-height:1.5; }
+  .pl-mom-up     { color:#16a163; }
+  .pl-mom-dn     { color:#ef4444; }
+  .pl-mom-flat   { color:#9ca3af; }
+  /* Collapsible section toggle arrow */
+  .pl-toggle     { float:right; margin-right:4px; display:inline-block; transition:transform .2s; }
+  .pl-toggle.collapsed { transform:rotate(-90deg); }
 </style>
 </head>
 <body>
@@ -11117,7 +11131,10 @@ function renderPLTab() {
     byMk[r.mk].push(r);
   }
 
-  const months = Object.keys(byMk).sort();
+  // Table: latest month first.  Charts: oldest first (natural time axis)
+  const months     = Object.keys(byMk).sort().reverse(); // newest → oldest
+  const chartMonths= [...months].reverse();              // oldest → newest
+
   const mkLabel = mk => {
     const [y,mo]=mk.split('-');
     return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+mo-1]+' '+y.slice(2);
@@ -11166,17 +11183,21 @@ function renderPLTab() {
     <div class="kpi-card"><div class="kpi-label">Best Month</div><div class="kpi-value" style="font-size:18px">${bestMk?mkLabel(bestMk):'-'}</div><div class="kpi-sub">${bestMk?plFmt(plByMk[bestMk].netP):''}</div></div>
     <div class="kpi-card"><div class="kpi-label">Months</div><div class="kpi-value">${months.length}</div></div>`;
 
-  // ── Trend line chart ─────────────────────────────────────────────────────
+  // ── Trend line chart (oldest→newest on x-axis) ───────────────────────────
   const lineCtx = document.getElementById('pl-trend-chart');
   if (plCharts.trend) plCharts.trend.destroy();
   plCharts.trend = new Chart(lineCtx, {
     type:'line',
     data:{
-      labels:months.map(mkLabel),
+      labels:chartMonths.map(mkLabel),
       datasets:[
-        {label:'Revenue',   data:months.map(m=>plByMk[m].totalRev),  borderColor:'#1a6fd8',backgroundColor:'rgba(26,111,216,.07)',borderWidth:2,pointRadius:3,tension:.3,fill:true},
-        {label:'Total Cost',data:months.map(m=>plByMk[m].totalCost), borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.04)',  borderWidth:2,pointRadius:3,tension:.3},
-        {label:'Net Profit',data:months.map(m=>plByMk[m].netP),      borderColor:'#16a163',backgroundColor:'rgba(22,161,99,.06)',  borderWidth:2.5,pointRadius:4,tension:.3,fill:true}
+        {label:'Revenue',   data:chartMonths.map(m=>plByMk[m].totalRev),  borderColor:'#1a6fd8',backgroundColor:'rgba(26,111,216,.07)',borderWidth:2,pointRadius:3,tension:.3,fill:true},
+        {label:'Total Cost',data:chartMonths.map(m=>plByMk[m].totalCost), borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.04)',  borderWidth:2,pointRadius:3,tension:.3},
+        {label:'Net Profit',data:chartMonths.map(m=>plByMk[m].netP),
+          borderColor:'#16a163',backgroundColor:'rgba(22,161,99,.06)',borderWidth:2.5,tension:.3,fill:true,
+          pointRadius:4,
+          pointBackgroundColor:chartMonths.map(m=>plByMk[m].netP>=0?'#16a163':'#ef4444'),
+          pointBorderColor:   chartMonths.map(m=>plByMk[m].netP>=0?'#16a163':'#ef4444')}
       ]
     },
     options:{responsive:true,maintainAspectRatio:false,
@@ -11184,16 +11205,16 @@ function renderPLTab() {
       scales:{x:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#999',font:{size:10},maxRotation:45,autoSkip:false}},y:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#999',callback:v=>plFmt(v)}}}}
   });
 
-  // ── Stacked cost bar ─────────────────────────────────────────────────────
+  // ── Stacked cost bar (oldest→newest) ─────────────────────────────────────
   const barCtx = document.getElementById('pl-cost-chart');
   if (plCharts.cost) plCharts.cost.destroy();
   plCharts.cost = new Chart(barCtx, {
     type:'bar',
     data:{
-      labels:months.map(mkLabel),
+      labels:chartMonths.map(mkLabel),
       datasets:BWPL_CC_ORDER.map(cc=>({
         label:BWPL_CC_LABELS[cc],
-        data:months.map(m=>plByMk[m].costByMain[cc]||0),
+        data:chartMonths.map(m=>plByMk[m].costByMain[cc]||0),
         backgroundColor:BWPL_CC_COLORS[cc],
         stack:'c',borderRadius:2
       }))
@@ -11204,68 +11225,121 @@ function renderPLTab() {
   });
 
   // ── P&L Statement table ──────────────────────────────────────────────────
-  const fmtC  = (v,bold) => { const cls=v<0?'pl-neg':v>0?'pl-pos':''; const inner=bold?`<strong>${plFmtFull(v)}</strong>`:plFmtFull(v); return `<td class="pl-td ${cls}">${inner}</td>`; };
-  const fmtT  = (v,bold) => { const cls=v<0?'pl-neg':v>0?'pl-pos':''; const inner=bold?`<strong>${plFmtFull(v)}</strong>`:plFmtFull(v); return `<td class="pl-td pl-total-col ${cls}">${inner}</td>`; };
+  // months[] is newest-first, so months[i+1] is the prior month for MoM %
+  const momBadge = (curr, prev) => {
+    if (prev == null || Math.abs(prev) < 0.01) return '';
+    const pct = ((curr - prev) / Math.abs(prev)) * 100;
+    if (Math.abs(pct) < 0.5) return `<span class="pl-mom pl-mom-flat">▬ 0%</span>`;
+    if (pct > 0) return `<span class="pl-mom pl-mom-up">▲ ${pct.toFixed(1)}%</span>`;
+    return `<span class="pl-mom pl-mom-dn">▼ ${Math.abs(pct).toFixed(1)}%</span>`;
+  };
+
+  // Line item cell: show value + MoM badge stacked
+  const fmtLine = (v, prev, valCls) => {
+    const badge = momBadge(v, prev);
+    const num   = `<span class="${valCls}">${plFmtFull(v)}</span>`;
+    return `<td class="pl-td">${badge?`<div class="pl-cell-wrap">${num}${badge}</div>`:num}</td>`;
+  };
+  const fmtLineTot = (v, valCls) =>
+    `<td class="pl-td pl-total-col"><span class="${valCls}">${plFmtFull(v)}</span></td>`;
+
+  // Subtotal/profit cell: coloured by sign
+  const fmtSub = (v, prev) => {
+    const cls   = v < 0 ? 'pl-profit-neg' : 'pl-profit-pos';
+    const badge = momBadge(v, prev);
+    const num   = `<strong class="${cls}">${plFmtFull(v)}</strong>`;
+    return `<td class="pl-td">${badge?`<div class="pl-cell-wrap">${num}${badge}</div>`:num}</td>`;
+  };
+  const fmtSubTot = v => {
+    const cls = v < 0 ? 'pl-profit-neg' : 'pl-profit-pos';
+    return `<td class="pl-td pl-total-col"><strong class="${cls}">${plFmtFull(v)}</strong></td>`;
+  };
+
+  // Expense subtotal: always shown in cost colour
+  const fmtExpSub = (v, prev) => {
+    const badge = momBadge(v, prev);
+    const num   = `<strong class="pl-cost-val">${plFmtFull(v)}</strong>`;
+    return `<td class="pl-td">${badge?`<div class="pl-cell-wrap">${num}${badge}</div>`:num}</td>`;
+  };
+  const fmtExpSubTot = v =>
+    `<td class="pl-td pl-total-col"><strong class="pl-cost-val">${plFmtFull(v)}</strong></td>`;
+
   const fmtP  = p => `<td class="pl-td pl-pct-val">${p.toFixed(1)}%</td>`;
   const fmtPT = p => `<td class="pl-td pl-total-col pl-pct-val">${p.toFixed(1)}%</td>`;
-  const colSpan = months.length+2;
+  const colSpan = months.length + 2;
+
+  // Collapsible section toggle (global fn called by onclick)
+  window.plToggleSec = id => {
+    const rows = document.querySelectorAll(`[data-sec="${id}"]`);
+    const icon = document.querySelector(`#pl-sec-${id} .pl-toggle`);
+    const hide = icon && !icon.classList.contains('collapsed');
+    rows.forEach(r => { r.style.display = hide ? 'none' : ''; });
+    if (icon) icon.classList.toggle('collapsed', hide);
+  };
+  const secHdr = (id, label) =>
+    `<tr class="pl-section-hdr" id="pl-sec-${id}" onclick="plToggleSec('${id}')">` +
+    `<td colspan="${colSpan}">${label}<span class="pl-toggle">▾</span></td></tr>`;
 
   // Collect revenue sub-codes present in data, in preferred order
   const allRevSubs = [...new Set(months.flatMap(mk=>(byMk[mk]||[]).filter(r=>r.mainCode==='SALES').map(r=>r.subCode)))]
     .sort((a,b)=>{ const ai=BWPL_REV_ORDER.indexOf(a),bi=BWPL_REV_ORDER.indexOf(b); return (ai<0?999:ai)-(bi<0?999:bi); });
 
   let h = `<table class="pl-tbl"><thead><tr><th class="pl-th-label">Item</th>`;
-  months.forEach(m=>h+=`<th class="pl-th">${mkLabel(m)}</th>`);
+  months.forEach(m => h += `<th class="pl-th">${mkLabel(m)}</th>`);
   h += `<th class="pl-th pl-total-col">Total</th></tr></thead><tbody>`;
 
-  // Revenue
-  h += `<tr class="pl-section-hdr"><td colspan="${colSpan}">Revenue</td></tr>`;
+  // ── REVENUE ────────────────────────────────────────────────────────────────
+  h += secHdr('rev', 'Revenue');
   for (const sub of allRevSubs) {
-    const mVals=months.map(m=>plByMk[m].revBySub[sub]||0);
-    const rowTot=mVals.reduce((a,b)=>a+b,0);
+    const mVals = months.map(m => plByMk[m].revBySub[sub]||0);
+    const rowTot = mVals.reduce((a,b)=>a+b,0);
     if (rowTot===0) continue;
-    h += `<tr><td class="pl-td-label">&nbsp;&nbsp;&nbsp;${BWPL_REV_LABELS[sub]||sub}</td>`;
-    mVals.forEach(v=>h+=fmtC(v,false));
-    h += fmtT(rowTot,false)+'</tr>';
+    h += `<tr data-sec="rev"><td class="pl-td-label">&nbsp;&nbsp;&nbsp;${BWPL_REV_LABELS[sub]||sub}</td>`;
+    mVals.forEach((v,i) => h += fmtLine(v, i+1<mVals.length?mVals[i+1]:null, 'pl-rev-val'));
+    h += fmtLineTot(rowTot,'pl-rev-val')+'</tr>';
   }
+  const mRevVals = months.map(m => plByMk[m].totalRev);
   h += `<tr class="pl-row-subtotal"><td class="pl-td-label">Total Revenue</td>`;
-  months.forEach(m=>h+=fmtC(plByMk[m].totalRev,true));
-  h += fmtT(tot.totalRev,true)+'</tr>';
+  mRevVals.forEach((v,i) => h += fmtSub(v, i+1<mRevVals.length?mRevVals[i+1]:null));
+  h += fmtSubTot(tot.totalRev)+'</tr>';
 
-  // COGS + Gross Profit
-  h += `<tr class="pl-section-hdr"><td colspan="${colSpan}">Cost of Goods Sold</td></tr>`;
-  h += `<tr><td class="pl-td-label">&nbsp;&nbsp;&nbsp;COGS</td>`;
-  months.forEach(m=>h+=fmtC(plByMk[m].cogs,false));
-  h += fmtT(tot.cogs,false)+'</tr>';
+  // ── COGS + GROSS PROFIT ────────────────────────────────────────────────────
+  h += secHdr('cogs', 'Cost of Goods Sold');
+  const mCogsVals = months.map(m => plByMk[m].cogs);
+  h += `<tr data-sec="cogs"><td class="pl-td-label">&nbsp;&nbsp;&nbsp;COGS</td>`;
+  mCogsVals.forEach((v,i) => h += fmtLine(v, i+1<mCogsVals.length?mCogsVals[i+1]:null, 'pl-cost-val'));
+  h += fmtLineTot(tot.cogs,'pl-cost-val')+'</tr>';
+  const mGPVals = months.map(m => plByMk[m].grossP);
   h += `<tr class="pl-row-gross"><td class="pl-td-label">Gross Profit</td>`;
-  months.forEach(m=>h+=fmtC(plByMk[m].grossP,true));
-  h += fmtT(tot.grossP,true)+'</tr>';
+  mGPVals.forEach((v,i) => h += fmtSub(v, i+1<mGPVals.length?mGPVals[i+1]:null));
+  h += fmtSubTot(tot.grossP)+'</tr>';
   h += `<tr class="pl-row-pct"><td class="pl-td-label pl-pct-val">&nbsp;&nbsp;&nbsp;GP Margin</td>`;
-  months.forEach(m=>h+=fmtP(plByMk[m].gpPct));
+  months.forEach(m => h += fmtP(plByMk[m].gpPct));
   h += fmtPT(tot.gpPct)+'</tr>';
 
-  // Operating Expenses
-  h += `<tr class="pl-section-hdr"><td colspan="${colSpan}">Operating Expenses</td></tr>`;
+  // ── OPERATING EXPENSES ─────────────────────────────────────────────────────
+  h += secHdr('opex', 'Operating Expenses');
   for (const cc of BWPL_CC_ORDER.filter(c=>c!=='COGS')) {
-    const mVals=months.map(m=>plByMk[m].costByMain[cc]||0);
-    const rowTot=mVals.reduce((a,b)=>a+b,0);
+    const mVals = months.map(m => plByMk[m].costByMain[cc]||0);
+    const rowTot = mVals.reduce((a,b)=>a+b,0);
     if (rowTot===0) continue;
-    h += `<tr><td class="pl-td-label">&nbsp;&nbsp;&nbsp;${BWPL_CC_LABELS[cc]}</td>`;
-    mVals.forEach(v=>h+=fmtC(v,false));
-    h += fmtT(rowTot,false)+'</tr>';
+    h += `<tr data-sec="opex"><td class="pl-td-label">&nbsp;&nbsp;&nbsp;${BWPL_CC_LABELS[cc]}</td>`;
+    mVals.forEach((v,i) => h += fmtLine(v, i+1<mVals.length?mVals[i+1]:null, 'pl-cost-val'));
+    h += fmtLineTot(rowTot,'pl-cost-val')+'</tr>';
   }
-  const mOpEx=months.map(m=>BWPL_CC_ORDER.filter(c=>c!=='COGS').reduce((s,c)=>s+(plByMk[m].costByMain[c]||0),0));
-  const tOpEx=BWPL_CC_ORDER.filter(c=>c!=='COGS').reduce((s,c)=>s+(tot.costByMain[c]||0),0);
+  const mOpEx = months.map(m => BWPL_CC_ORDER.filter(c=>c!=='COGS').reduce((s,c)=>s+(plByMk[m].costByMain[c]||0),0));
+  const tOpEx = BWPL_CC_ORDER.filter(c=>c!=='COGS').reduce((s,c)=>s+(tot.costByMain[c]||0),0);
   h += `<tr class="pl-row-subtotal"><td class="pl-td-label">Total Expenses</td>`;
-  mOpEx.forEach(v=>h+=fmtC(v,true));
-  h += fmtT(tOpEx,true)+'</tr>';
+  mOpEx.forEach((v,i) => h += fmtExpSub(v, i+1<mOpEx.length?mOpEx[i+1]:null));
+  h += fmtExpSubTot(tOpEx)+'</tr>';
 
-  // Net Profit
+  // ── NET PROFIT ─────────────────────────────────────────────────────────────
+  const mNetVals = months.map(m => plByMk[m].netP);
   h += `<tr class="pl-row-net"><td class="pl-td-label">Net Profit</td>`;
-  months.forEach(m=>h+=fmtC(plByMk[m].netP,true));
-  h += fmtT(tot.netP,true)+'</tr>';
+  mNetVals.forEach((v,i) => h += fmtSub(v, i+1<mNetVals.length?mNetVals[i+1]:null));
+  h += fmtSubTot(tot.netP)+'</tr>';
   h += `<tr class="pl-row-pct"><td class="pl-td-label pl-pct-val">&nbsp;&nbsp;&nbsp;Net Margin</td>`;
-  months.forEach(m=>h+=fmtP(plByMk[m].netMargin));
+  months.forEach(m => h += fmtP(plByMk[m].netMargin));
   h += fmtPT(tot.netMargin)+'</tr>';
 
   h += '</tbody></table>';
