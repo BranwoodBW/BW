@@ -197,6 +197,7 @@
   .pl-kpi-lbl  { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
   .pl-kpi-val  { font-size:24px; font-weight:800; color:var(--pkc,var(--text)); margin:5px 0 3px; line-height:1; }
   .pl-kpi-sub  { font-size:11px; color:var(--muted); }
+  .pl-sub-pct  { display:block; font-size:9px; color:#9ca3af; margin-top:1px; }
 </style>
 </head>
 <body>
@@ -11416,14 +11417,18 @@ function renderPLTab() {
     return `<span class="pl-mom pl-mom-dn">▼ ${Math.abs(pct).toFixed(1)}%</span>`;
   };
 
-  // Line item cell: show value + MoM badge stacked
-  const fmtLine = (v, prev, valCls) => {
-    const badge = momBadge(v, prev);
-    const num   = `<span class="${valCls}">${plFmtFull(v)}</span>`;
-    return `<td class="pl-td">${badge?`<div class="pl-cell-wrap">${num}${badge}</div>`:num}</td>`;
+  // Line item cell: show value + MoM badge + optional % of parent
+  const fmtLine = (v, prev, valCls, pct) => {
+    const badge  = momBadge(v, prev);
+    const pctEl  = pct != null ? `<span class="pl-sub-pct">${pct.toFixed(1)}%</span>` : '';
+    const num    = `<span class="${valCls}">${plFmtFull(v)}</span>`;
+    const hasWrap = badge || pctEl;
+    return `<td class="pl-td">${hasWrap?`<div class="pl-cell-wrap">${num}${badge}${pctEl}</div>`:num}</td>`;
   };
-  const fmtLineTot = (v, valCls) =>
-    `<td class="pl-td pl-total-col"><span class="${valCls}">${plFmtFull(v)}</span></td>`;
+  const fmtLineTot = (v, valCls, pct) => {
+    const pctEl = pct != null ? `<span class="pl-sub-pct">${pct.toFixed(1)}%</span>` : '';
+    return `<td class="pl-td pl-total-col"><span class="${valCls}">${plFmtFull(v)}</span>${pctEl}</td>`;
+  };
 
   // Subtotal/profit cell: coloured by sign
   const fmtSub = (v, prev) => {
@@ -11477,8 +11482,11 @@ function renderPLTab() {
     const rowTot = mVals.reduce((a,b)=>a+b,0);
     if (rowTot===0) continue;
     h += `<tr data-sec="rev"><td class="pl-td-label">&nbsp;&nbsp;&nbsp;${BWPL_REV_LABELS[sub]||sub}</td>`;
-    mVals.forEach((v,i) => h += fmtLine(v, i+1<mVals.length?mVals[i+1]:null, 'pl-rev-val'));
-    h += fmtLineTot(rowTot,'pl-rev-val')+'</tr>';
+    mVals.forEach((v,i) => {
+      const mRev = plByMk[months[i]].totalRev;
+      h += fmtLine(v, i+1<mVals.length?mVals[i+1]:null, 'pl-rev-val', mRev>0?v/mRev*100:null);
+    });
+    h += fmtLineTot(rowTot,'pl-rev-val', tot.totalRev>0?rowTot/tot.totalRev*100:null)+'</tr>';
   }
   const mRevVals = months.map(m => plByMk[m].totalRev);
   h += `<tr class="pl-row-subtotal"><td class="pl-td-label">Total Revenue</td>`;
@@ -11489,8 +11497,11 @@ function renderPLTab() {
   h += secHdr('cogs', 'Cost of Goods Sold');
   const mCogsVals = months.map(m => plByMk[m].cogs);
   h += `<tr data-sec="cogs"><td class="pl-td-label">&nbsp;&nbsp;&nbsp;COGS</td>`;
-  mCogsVals.forEach((v,i) => h += fmtLine(v, i+1<mCogsVals.length?mCogsVals[i+1]:null, 'pl-cost-val'));
-  h += fmtLineTot(tot.cogs,'pl-cost-val')+'</tr>';
+  mCogsVals.forEach((v,i) => {
+    const mRev = plByMk[months[i]].totalRev;
+    h += fmtLine(v, i+1<mCogsVals.length?mCogsVals[i+1]:null, 'pl-cost-val', mRev>0?v/mRev*100:null);
+  });
+  h += fmtLineTot(tot.cogs,'pl-cost-val', tot.totalRev>0?tot.cogs/tot.totalRev*100:null)+'</tr>';
   const mGPVals = months.map(m => plByMk[m].grossP);
   h += `<tr class="pl-row-gross"><td class="pl-td-label">Gross Profit</td>`;
   mGPVals.forEach((v,i) => h += fmtSub(v, i+1<mGPVals.length?mGPVals[i+1]:null));
@@ -11501,15 +11512,20 @@ function renderPLTab() {
 
   // ── OPERATING EXPENSES ─────────────────────────────────────────────────────
   h += secHdr('opex', 'Operating Expenses');
+  // Pre-compute total opex per month for % calculation
+  const mOpExTotal = months.map(m => BWPL_CC_ORDER.filter(c=>c!=='COGS').reduce((s,c)=>s+(plByMk[m].costByMain[c]||0),0));
+  const tOpExTotal = BWPL_CC_ORDER.filter(c=>c!=='COGS').reduce((s,c)=>s+(tot.costByMain[c]||0),0);
   for (const cc of BWPL_CC_ORDER.filter(c=>c!=='COGS')) {
     const mVals = months.map(m => plByMk[m].costByMain[cc]||0);
     const rowTot = mVals.reduce((a,b)=>a+b,0);
     if (rowTot===0) continue;
     h += `<tr data-sec="opex"><td class="pl-td-label">&nbsp;&nbsp;&nbsp;${BWPL_CC_LABELS[cc]}</td>`;
-    mVals.forEach((v,i) => h += fmtLine(v, i+1<mVals.length?mVals[i+1]:null, 'pl-cost-val'));
-    h += fmtLineTot(rowTot,'pl-cost-val')+'</tr>';
+    mVals.forEach((v,i) => {
+      h += fmtLine(v, i+1<mVals.length?mVals[i+1]:null, 'pl-cost-val', mOpExTotal[i]>0?v/mOpExTotal[i]*100:null);
+    });
+    h += fmtLineTot(rowTot,'pl-cost-val', tOpExTotal>0?rowTot/tOpExTotal*100:null)+'</tr>';
   }
-  const mOpEx = months.map(m => BWPL_CC_ORDER.filter(c=>c!=='COGS').reduce((s,c)=>s+(plByMk[m].costByMain[c]||0),0));
+  const mOpEx = mOpExTotal;
   const tOpEx = BWPL_CC_ORDER.filter(c=>c!=='COGS').reduce((s,c)=>s+(tot.costByMain[c]||0),0);
   h += `<tr class="pl-row-subtotal"><td class="pl-td-label">Total Expenses</td>`;
   mOpEx.forEach((v,i) => h += fmtExpSub(v, i+1<mOpEx.length?mOpEx[i+1]:null));
