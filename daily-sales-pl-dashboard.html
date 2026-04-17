@@ -412,6 +412,11 @@
       <div style="position:relative;height:280px"><canvas id="pl-cost-chart"></canvas></div></div>
   </div>
 
+  <div class="chart-card" style="margin-bottom:20px">
+    <h3>Manager Sales &amp; Cost Breakdown</h3>
+    <div id="pl-mgr-wrap" style="position:relative;height:300px"><canvas id="pl-mgr-chart"></canvas></div>
+  </div>
+
   <div class="table-section">
     <h3>Monthly P&amp;L Statement</h3>
     <div class="tbl-wrap" id="pl-table"></div>
@@ -11286,6 +11291,21 @@ function renderPLTab() {
   const months     = Object.keys(byMk).sort().reverse(); // newest → oldest
   const chartMonths= [...months].reverse();              // oldest → newest
 
+  // ── Alternating column CSS (injected dynamically so it scales with month count) ──
+  {
+    let css = '';
+    months.forEach((mk, i) => {
+      if (i % 2 === 1) {
+        const nth = i + 2; // col1=label, col2=months[0], col3=months[1]…
+        css += `.pl-tbl td:nth-child(${nth}){background-image:linear-gradient(rgba(30,64,175,.042),rgba(30,64,175,.042));}` +
+               `.pl-tbl th:nth-child(${nth}){background-color:rgba(30,64,175,.06) !important;}`;
+      }
+    });
+    let s = document.getElementById('pl-col-alt-style');
+    if (!s) { s = document.createElement('style'); s.id = 'pl-col-alt-style'; document.head.appendChild(s); }
+    s.textContent = css;
+  }
+
   const mkLabel = mk => {
     const [y,mo]=mk.split('-');
     return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+mo-1]+' '+y.slice(2);
@@ -11542,6 +11562,51 @@ function renderPLTab() {
 
   h += '</tbody></table>';
   document.getElementById('pl-table').innerHTML = h;
+
+  // ── MANAGER SALES & COST BREAKDOWN CHART ─────────────────────────────────
+  {
+    const mgrRev = {}, mgrCost = {};
+    for (const mk of months) {
+      for (const r of (byMk[mk] || [])) {
+        const m = r.mgr; if (!m) continue;
+        if (r.mainCode === 'SALES') mgrRev[m] = (mgrRev[m] || 0) + r.amt;
+        else                        mgrCost[m] = (mgrCost[m] || 0) + r.amt;
+      }
+    }
+    const mgrs = [...new Set([...Object.keys(mgrRev), ...Object.keys(mgrCost)])]
+      .sort((a,b) => (mgrRev[b]||0) - (mgrRev[a]||0));
+
+    // Resize chart height based on number of managers (min 200px)
+    const mgrH = Math.max(200, mgrs.length * 48);
+    document.getElementById('pl-mgr-wrap').style.height = mgrH + 'px';
+
+    const mgrCtx = document.getElementById('pl-mgr-chart');
+    if (plCharts.mgr) plCharts.mgr.destroy();
+    if (mgrs.length && mgrCtx) {
+      plCharts.mgr = new Chart(mgrCtx, {
+        type: 'bar',
+        data: {
+          labels: mgrs,
+          datasets: [
+            { label:'Revenue',    data:mgrs.map(m=>mgrRev[m]||0),  backgroundColor:'rgba(26,111,216,.8)',  borderRadius:3 },
+            { label:'Total Cost', data:mgrs.map(m=>mgrCost[m]||0), backgroundColor:'rgba(239,68,68,.72)', borderRadius:3 }
+          ]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { labels:{color:'#777',font:{size:10},boxWidth:12,boxHeight:12} },
+            tooltip: { callbacks:{ label: c => c.dataset.label+': '+plFmtFull(c.raw) } }
+          },
+          scales: {
+            x: { grid:{color:'rgba(0,0,0,.04)'}, ticks:{color:'#999',font:{size:10},callback:v=>plFmt(v)} },
+            y: { grid:{display:false}, ticks:{color:'#444',font:{size:11,weight:'600'}} }
+          }
+        }
+      });
+    }
+  }
 }
 
 fetchBWPLData().catch(err => console.warn('BW P&L prefetch failed:', err));
