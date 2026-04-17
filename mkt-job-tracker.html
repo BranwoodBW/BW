@@ -115,26 +115,57 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .empty{text-align:center;padding:40px;color:var(--muted);font-size:13px}
 
 /* ── timeliness tables ── */
-.tl-tbl{width:100%;border-collapse:collapse;font-size:11px}
-.tl-tbl th{text-align:center;font-weight:600;color:#333;font-size:10px;padding:6px 5px;border:1px solid var(--border);background:#fafafa;vertical-align:middle}
-.tl-tbl th.tl-h-passed{background:#e9e2f6;color:#5b21b6}
-.tl-tbl th.tl-h-dl{background:#dcfce7;color:#14532d}
-.tl-tbl th.tl-h-sum{background:#dbeafe;color:#1e3a8a}
+.tl-tbl{width:100%;border-collapse:collapse;font-size:11px;background:#fff}
+.tl-tbl th{text-align:center;font-weight:500;color:#555;font-size:10px;padding:7px 6px;background:#f8f8f5;border-bottom:1px solid var(--border);vertical-align:middle;white-space:nowrap}
+.tl-tbl th.tl-h-sum{background:#eef5ff;color:#1e3a8a}
 .tl-tbl th.tl-h-total{background:#fef3c7;color:#713f12}
-.tl-tbl td{text-align:center;padding:5px 4px;border:1px solid var(--border);font-size:11px;vertical-align:middle}
-.tl-tbl td.tl-name{text-align:left;font-weight:600;padding:5px 8px;background:#fef9e7}
-.tl-tbl td.tl-total{font-weight:700;background:#e0efff}
-.tl-tbl td.tl-pct{color:var(--muted);font-size:10px;font-style:italic}
-.tl-tbl td.tl-passed{background:#f5eefd}
-.tl-tbl td.tl-passed-w{background:#fef3c7}
-.tl-tbl td.tl-passed-r{background:#fee2e2;color:#991b1b;font-weight:600}
-.tl-tbl td.tl-dl{background:#ecfdf5}
-.tl-tbl td.tl-dl-r{background:#fee2e2;color:#991b1b;font-weight:600}
-.tl-tbl td.tl-miss{font-weight:600}
-.tl-tbl tr.tl-total-row td{background:#fef3c7;font-weight:700;border-top:2px solid #d1a54a}
+.tl-tbl th.tl-h-passed{background:#f5f3ff;color:#6b21a8}
+.tl-tbl th.tl-h-dl{background:#ecfdf5;color:#14532d}
+.tl-tbl th.tl-h-miss{background:#fff1f2;color:#9f1239}
+.tl-tbl td{text-align:center;padding:6px 6px;border-bottom:1px solid #f1f1ed;font-size:11px;vertical-align:middle;color:#333}
+.tl-tbl td.tl-name{text-align:left;font-weight:600;padding:6px 10px;color:#1a1a18;background:#fafaf6}
+.tl-tbl td.tl-total{font-weight:700;background:#eef5ff;color:#1e3a8a}
+.tl-tbl td.tl-passed{color:#555}
+.tl-tbl td.tl-passed-w{color:#92400e;font-weight:600;background:#fffbeb}
+.tl-tbl td.tl-passed-r{color:#991b1b;font-weight:700;background:#fef2f2}
+.tl-tbl td.tl-dl{color:#555}
+.tl-tbl td.tl-dl-r{color:#991b1b;font-weight:700;background:#fef2f2}
+.tl-tbl td.tl-miss{font-weight:600;text-align:center}
+.tl-tbl td.tl-miss.tl-miss-ok{color:#15803d}
+.tl-tbl td.tl-miss.tl-miss-mid{color:#92400e}
+.tl-tbl td.tl-miss.tl-miss-bad{color:#991b1b;background:#fef2f2}
+.tl-tbl tr:hover td{background:#fafaf5}
+.tl-tbl tr.tl-total-row td{background:#fef3c7;font-weight:700;border-top:2px solid #d1a54a;border-bottom:1px solid #d1a54a;color:#713f12}
+.tl-tbl tr.tl-total-row td.tl-name,
+.tl-tbl tr.tl-total-row td.tl-total{background:#fde68a}
 .tl-tbl .tl-sub{display:block;font-size:9px;color:var(--muted);font-weight:400;margin-top:2px}
-.tl-tbl .tl-zero{color:#cbd5e1}
+.tl-tbl .tl-zero{color:#d1d5db}
+.tl-tbl th.tl-sep,.tl-tbl td.tl-sep{border-left:2px solid #e2e2da}
 .tl-wrap{overflow-x:auto}
+/* KPI strip on timeliness */
+.tl-kpi{padding:12px 14px;border-radius:8px;background:#fff;border:1px solid var(--border)}
+.tl-kpi .lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px}
+.tl-kpi .val{font-size:22px;font-weight:700;color:#1a1a18}
+.tl-kpi .sub{font-size:10px;color:var(--muted);margin-top:2px}
+.tl-kpi.danger{background:#fef2f2;border-color:#fecaca}
+.tl-kpi.danger .val{color:#991b1b}
+.tl-kpi.warn{background:#fffbeb;border-color:#fde68a}
+.tl-kpi.warn .val{color:#92400e}
+.tl-kpi.ok{background:#f0fdf4;border-color:#bbf7d0}
+.tl-kpi.ok .val{color:#15803d}
+/* Est Date color coding */
+.est-missed{color:#991b1b;font-weight:700;background:#fee2e2;padding:2px 6px;border-radius:4px}
+.est-urgent{color:#b91c1c;font-weight:700;background:#fef2f2;padding:2px 6px;border-radius:4px}
+.est-warning{color:#92400e;font-weight:600;background:#fffbeb;padding:2px 6px;border-radius:4px}
+.est-ontime{color:#15803d;font-weight:600}
+.est-ok{color:#1a1a18}
+.est-cancel{color:#94a3b8}
+/* sortable headers */
+th.sortable{cursor:pointer;user-select:none;position:relative;padding-right:18px!important}
+th.sortable:hover{background:#f0f0ec}
+th.sortable::after{content:'';position:absolute;right:6px;top:50%;transform:translateY(-50%);border:4px solid transparent;border-top-color:#cbd5e1;margin-top:-2px;opacity:.5}
+th.sortable.sort-asc::after{border-top-color:transparent;border-bottom-color:#1a1a18;margin-top:-6px;opacity:1}
+th.sortable.sort-desc::after{border-top-color:#1a1a18;margin-top:-2px;opacity:1}
 
 /* ── responsive ── */
 @media(max-width:860px){
@@ -205,13 +236,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <div class="sidebar-section">
       <div class="section-hdr">
-        <span class="sidebar-label">MKT Manager</span>
+        <span class="sidebar-label">Task Requestor</span>
         <div class="sel-btns">
-          <button class="sel-btn" onclick="setAll('fManager',true)">All</button>
-          <button class="sel-btn" onclick="setAll('fManager',false)">None</button>
+          <button class="sel-btn" onclick="setAll('fRequestor',true)">All</button>
+          <button class="sel-btn" onclick="setAll('fRequestor',false)">None</button>
         </div>
       </div>
-      <div class="cb-list" id="fManager"></div>
+      <input class="fs-search" placeholder="Search requestor…" oninput="filterCBList('fRequestor',this.value)">
+      <div class="cb-list" id="fRequestor"></div>
     </div>
     <div class="sidebar-divider"></div>
 
@@ -409,34 +441,38 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <!-- ── Timeliness ── -->
     <div id="sec-timeliness" class="section">
+
+      <!-- KPI Strip -->
+      <div id="tlKpiStrip" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px"></div>
+
+      <!-- Ongoing Jobs Section -->
       <div class="chart-card" style="margin-bottom:14px">
-        <div class="chart-title">Overview (Ongoing + Completed)</div>
-        <div id="tlSummary" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px"></div>
-        <div class="tl-wrap"><table class="tl-tbl" id="tlOverviewOngoing"></table></div>
-        <div style="height:12px"></div>
-        <div class="tl-wrap"><table class="tl-tbl" id="tlOverviewCompleted"></table></div>
-        <div style="font-size:10px;color:var(--muted);margin-top:8px">
-          <strong>Days Passed</strong> = days from "Complete Info Received" (col T) to today (ongoing) or to completion date (completed).
-          <strong>Days to Deadline</strong> = days between today/completion date and "Est. Completion Date" (col U). Negative = missed.
+        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px">
+          <div class="chart-title" style="margin:0">Ongoing Jobs — how long they've been sitting & deadline status</div>
+          <div style="font-size:10px;color:var(--muted)">Sorted by total ongoing</div>
         </div>
-      </div>
-
-      <div class="chart-card" style="margin-bottom:14px">
-        <div class="chart-title">By MKT Rep (Done By)</div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Ongoing jobs per marketing staff member</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600">By MKT Rep (Done By)</div>
         <div class="tl-wrap"><table class="tl-tbl" id="tlMktOngoing"></table></div>
-        <div style="height:12px"></div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Completed jobs per marketing staff member</div>
-        <div class="tl-wrap"><table class="tl-tbl" id="tlMktCompleted"></table></div>
+        <div style="height:16px"></div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600">By Task Requestor</div>
+        <div class="tl-wrap"><table class="tl-tbl" id="tlMgrOngoing"></table></div>
       </div>
 
+      <!-- Completed Jobs Section -->
       <div class="chart-card" style="margin-bottom:14px">
-        <div class="chart-title">By Manager (Task Requestor)</div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Ongoing jobs per outlet manager who requested them</div>
-        <div class="tl-wrap"><table class="tl-tbl" id="tlMgrOngoing"></table></div>
-        <div style="height:12px"></div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Completed jobs per outlet manager</div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px">
+          <div class="chart-title" style="margin:0">Completed Jobs — how long they took & whether they hit deadline</div>
+          <div style="font-size:10px;color:var(--muted)">Sorted by total completed</div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600">By MKT Rep (Done By)</div>
+        <div class="tl-wrap"><table class="tl-tbl" id="tlMktCompleted"></table></div>
+        <div style="height:16px"></div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600">By Task Requestor</div>
         <div class="tl-wrap"><table class="tl-tbl" id="tlMgrCompleted"></table></div>
+      </div>
+
+      <div style="font-size:10px;color:var(--muted);padding:0 4px">
+        <strong>Days Passed</strong> = days since "Complete Info Received" (col T) · <strong>Days to Deadline</strong> = days vs. "Est. Completion Date" (col U). Negative = missed.
       </div>
     </div>
 
@@ -450,20 +486,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
       <div class="tbl-wrap">
         <table class="data-tbl">
-          <thead><tr>
-            <th>S/N</th>
-            <th>Status</th>
-            <th>Manager</th>
-            <th>Done By</th>
-            <th>Outlet</th>
-            <th>Purpose</th>
-            <th>Item</th>
-            <th>Requester</th>
-            <th>Date Created</th>
-            <th>Est. Date</th>
-            <th>Days</th>
-            <th>Design</th>
-            <th>Print / Delivery</th>
+          <thead><tr id="jobsThead">
+            <th class="sortable" data-sort="sn">S/N</th>
+            <th class="sortable" data-sort="status">Status</th>
+            <th class="sortable" data-sort="outletCode">Outlet</th>
+            <th class="sortable" data-sort="purpose">Purpose</th>
+            <th class="sortable" data-sort="item">Item</th>
+            <th class="sortable" data-sort="dateCreated">Date Created</th>
+            <th class="sortable" data-sort="dateInfo">Full Info Received</th>
+            <th class="sortable" data-sort="dateEst">Est. Date</th>
+            <th class="sortable" data-sort="daysTaken">Days</th>
+            <th class="sortable" data-sort="design">Design</th>
+            <th class="sortable" data-sort="print">Print / Delivery</th>
+            <th class="sortable" data-sort="executor">Done By</th>
+            <th class="sortable" data-sort="requester">Requester</th>
           </tr></thead>
           <tbody id="jobsTbody"></tbody>
         </table>
@@ -734,8 +770,8 @@ function initFilters() {
   populateCB('fStatus', statuses);
 
   // Manager
-  const managers = [...new Set(allJobs.map(j => j.manager))].filter(Boolean).sort();
-  populateCB('fManager', managers);
+  const requestors = [...new Set(allJobs.map(j => j.requester).filter(Boolean))].sort();
+  populateCB('fRequestor', requestors);
 
   // Executor
   const executors = [...new Set(allJobs.map(j => j.executor))].filter(Boolean).sort();
@@ -757,7 +793,7 @@ function getFiltered() {
   const selYears    = new Set(getSel('fYear'));
   const selMonths   = new Set(getSel('fMonth'));
   const selStatuses = new Set(getSel('fStatus'));
-  const selManagers = new Set(getSel('fManager'));
+  const selRequestors = new Set(getSel('fRequestor'));
   const selExecs    = new Set(getSel('fExecutor'));
   const selPurposes = new Set(getSel('fPurpose'));
   const selOutlets  = new Set(getSel('fOutlet'));
@@ -768,7 +804,7 @@ function getFiltered() {
     if (selYears.size    && yr && !selYears.has(yr))         return false;
     if (selMonths.size   && mo && !selMonths.has(mo))        return false;
     if (selStatuses.size && !selStatuses.has(j.status))      return false;
-    if (selManagers.size && !selManagers.has(j.manager))     return false;
+    if (selRequestors.size && j.requester && !selRequestors.has(j.requester)) return false;
     if (selExecs.size    && !selExecs.has(j.executor))       return false;
     if (selPurposes.size && !selPurposes.has(j.purpose))     return false;
     if (selOutlets.size  && j.outletCode && !selOutlets.has(j.outletCode)) return false;
@@ -1125,8 +1161,51 @@ function renderRequestor(jobs) {
   }).join('');
 }
 
+// Jobs-List sort state
+let _jobSortCol = 'sn';
+let _jobSortDir = 'asc';   // 'asc' | 'desc'
+
+// Extract comparable value for a given column
+function _jobSortValue(j, col) {
+  switch(col) {
+    case 'sn':          return parseInt(j.sn, 10) || 0;
+    case 'dateCreated': return j.dateCreated ? j.dateCreated.getTime() : 0;
+    case 'dateInfo':    return j.dateInfo    ? j.dateInfo.getTime()    : 0;
+    case 'dateEst':     return j.dateEst     ? j.dateEst.getTime()     : 0;
+    case 'daysTaken':   return j.daysTaken !== null ? j.daysTaken : -Infinity;
+    case 'outletCode':  return (j.outletCode || '').toLowerCase();
+    default:            return (j[col] || '').toString().toLowerCase();
+  }
+}
+
+function sortJobsBy(col) {
+  if (_jobSortCol === col) {
+    _jobSortDir = _jobSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    _jobSortCol = col;
+    _jobSortDir = (col === 'sn' || col === 'dateCreated' || col === 'dateEst' || col === 'daysTaken') ? 'desc' : 'asc';
+  }
+  renderJobsTable();
+}
+
+function estDateClass(j, today) {
+  if (!j.dateEst) return 'est-ok';
+  if (j.status === 'Cancelled') return 'est-cancel';
+  if (j.status === 'Completed') {
+    if (j.compDate && j.compDate > j.dateEst) return 'est-missed';
+    return 'est-ontime';
+  }
+  // Ongoing
+  const diff = Math.floor((j.dateEst.getTime() - today.getTime()) / 86400000);
+  if (diff < 0)  return 'est-missed';
+  if (diff <= 3) return 'est-urgent';
+  if (diff <= 7) return 'est-warning';
+  return 'est-ok';
+}
+
 function renderJobsTable() {
   const jobs = getFiltered();
+  const today = getToday();
   const q = (document.getElementById('jobSearch')?.value || '').toLowerCase().trim();
   const filtered = q ? jobs.filter(j =>
     j.sn.includes(q) ||
@@ -1135,31 +1214,47 @@ function renderJobsTable() {
     j.purpose.toLowerCase().includes(q) ||
     j.item.toLowerCase().includes(q) ||
     j.requester.toLowerCase().includes(q) ||
-    j.manager.toLowerCase().includes(q) ||
     j.executor.toLowerCase().includes(q) ||
     j.detail.toLowerCase().includes(q) ||
     j.status.toLowerCase().includes(q)
   ) : jobs;
+
+  // Sort
+  const dir = _jobSortDir === 'asc' ? 1 : -1;
+  const col = _jobSortCol;
+  filtered.sort((a,b) => {
+    const va = _jobSortValue(a, col);
+    const vb = _jobSortValue(b, col);
+    if (va < vb) return -1 * dir;
+    if (va > vb) return  1 * dir;
+    return 0;
+  });
+
+  // Update header indicators
+  document.querySelectorAll('#jobsThead th').forEach(th => {
+    th.classList.remove('sort-asc', 'sort-desc');
+    if (th.dataset.sort === col) th.classList.add(dir === 1 ? 'sort-asc' : 'sort-desc');
+  });
 
   document.getElementById('jobCount').textContent = `${filtered.length} of ${jobs.length} jobs`;
 
   document.getElementById('jobsTbody').innerHTML = filtered.map(j => `<tr>
     <td class="sn-cell">${j.sn}</td>
     <td>${badge(j.status)}</td>
-    <td>${j.manager}</td>
-    <td>${j.executor}</td>
     <td>
       <strong style="font-size:11px">${j.outletCode}</strong>
       ${j.outletName ? `<br><span style="font-size:10px;color:var(--muted)">${j.outletName}</span>` : ''}
     </td>
     <td style="white-space:nowrap">${j.purpose}</td>
     <td style="white-space:nowrap">${j.item}</td>
-    <td>${j.requester}</td>
     <td style="white-space:nowrap;font-size:11px">${j.dateCreated ? fmtDate(j.dateCreated) : '—'}</td>
-    <td style="white-space:nowrap;font-size:11px">${j.dateEst ? fmtDate(j.dateEst) : '—'}</td>
+    <td style="white-space:nowrap;font-size:11px">${j.dateInfo ? fmtDate(j.dateInfo) : '—'}</td>
+    <td style="white-space:nowrap;font-size:11px"><span class="${estDateClass(j, today)}">${j.dateEst ? fmtDate(j.dateEst) : '—'}</span></td>
     <td style="text-align:right;font-size:11px">${j.daysTaken !== null ? j.daysTaken : '—'}</td>
     <td>${badge(j.design)}</td>
     <td style="font-size:11px;white-space:nowrap">${j.print || '—'}</td>
+    <td>${j.executor}</td>
+    <td>${j.requester}</td>
   </tr>`).join('') || `<tr><td colspan="13" class="empty">No jobs match the current filters.</td></tr>`;
 }
 
@@ -1210,12 +1305,9 @@ function groupBy(jobs, keyFn) {
   return out;
 }
 
-// Map executor to MKT Dept category (matches your screenshot: Alan, Shin, Edward, FJ, Others)
-const KNOWN_MKT_REPS = new Set(['Alan', 'Shin', 'Edward', 'FJ']);
 function mktRepGroup(j) {
   const e = j.executor;
-  if (!e || e === 'Unknown') return 'Others';
-  return KNOWN_MKT_REPS.has(e) ? e : 'Others';
+  return (e && e !== 'Unknown') ? e : '(unassigned)';
 }
 
 function managerGroup(j) {
@@ -1239,54 +1331,61 @@ function computeBucketRow(jobs, passedField, deadlineField) {
 
 // HTML for table header (shared)
 function tlTableHeader(groupLabel, isCompleted) {
-  const passHdr = isCompleted ? 'Days Taken to Complete (By Days Passed)' : 'Days Passed Since Complete Information';
-  const dlHdr   = isCompleted ? 'Days Taken to Complete (By Deadline)'     : 'Days to Deadline';
-  const totLbl  = isCompleted ? 'Total Completed' : 'Total Ongoing';
+  const passHdr = isCompleted ? 'Days Taken to Complete' : 'Days Since Info Received';
+  const dlHdr   = isCompleted ? 'At Completion — vs. Deadline' : 'Time to Deadline';
+  const totLbl  = isCompleted ? 'Total' : 'Total';
   return `<thead>
     <tr>
-      <th rowspan="2" class="tl-h-sum" style="min-width:110px">${groupLabel}</th>
+      <th rowspan="2" class="tl-h-sum" style="min-width:130px;text-align:left;padding-left:12px">${groupLabel}</th>
       <th rowspan="2" class="tl-h-total">${totLbl}</th>
-      <th colspan="${PASSED_BUCKETS.length}" class="tl-h-passed">${passHdr}</th>
-      <th colspan="${DEADLINE_BUCKETS.length}" class="tl-h-dl">${dlHdr}</th>
-      <th rowspan="2" class="tl-h-dl">Miss %</th>
+      <th colspan="${PASSED_BUCKETS.length}" class="tl-h-passed tl-sep">${passHdr}</th>
+      <th colspan="${DEADLINE_BUCKETS.length}" class="tl-h-dl tl-sep">${dlHdr}</th>
+      <th rowspan="2" class="tl-h-miss tl-sep">Miss %</th>
     </tr>
     <tr>
-      ${PASSED_BUCKETS.map(b => `<th class="tl-h-passed">${b.label}</th>`).join('')}
-      ${DEADLINE_BUCKETS.map(b => `<th class="tl-h-dl">${b.label}</th>`).join('')}
+      ${PASSED_BUCKETS.map((b,i) => `<th class="tl-h-passed${i===0?' tl-sep':''}">${b.label}</th>`).join('')}
+      ${DEADLINE_BUCKETS.map((b,i) => `<th class="tl-h-dl${i===0?' tl-sep':''}">${b.label}</th>`).join('')}
     </tr>
   </thead>`;
 }
 
-// Render a single data row (count + percentage row, or just count row for per-group tables)
-function tlRow(name, { total, pCounts, dCounts }, grandTotal, showPct, isTotalRow) {
+// Render a single data row
+function tlRow(name, { total, pCounts, dCounts }, isTotalRow) {
   const miss = dCounts.d_missed || 0;
-  const missPct = total > 0 ? ((miss / total) * 100).toFixed(1) + '%' : '—';
-  const missClass = miss > 0 ? 'tl-dl-r' : 'tl-dl';
+  const missPctNum = total > 0 ? (miss / total) * 100 : 0;
+  const missPct = total > 0 ? missPctNum.toFixed(1) + '%' : '—';
+  let missClass = 'tl-miss-ok';
+  if (missPctNum >= 30) missClass = 'tl-miss-bad';
+  else if (missPctNum >= 10) missClass = 'tl-miss-mid';
   const rowClass = isTotalRow ? 'tl-total-row' : '';
   const cell = (v, cls) => `<td class="${cls}">${v > 0 ? v : '<span class="tl-zero">—</span>'}</td>`;
   return `<tr class="${rowClass}">
     <td class="tl-name">${name}</td>
     <td class="tl-total">${total}</td>
-    ${PASSED_BUCKETS.map(b => cell(pCounts[b.key], b.cls)).join('')}
-    ${DEADLINE_BUCKETS.map(b => cell(dCounts[b.key], b.cls)).join('')}
-    <td class="${missClass} tl-miss">${missPct}</td>
+    ${PASSED_BUCKETS.map((b,i) => `<td class="${b.cls}${i===0?' tl-sep':''}">${pCounts[b.key] > 0 ? pCounts[b.key] : '<span class="tl-zero">—</span>'}</td>`).join('')}
+    ${DEADLINE_BUCKETS.map((b,i) => `<td class="${b.cls}${i===0?' tl-sep':''}">${dCounts[b.key] > 0 ? dCounts[b.key] : '<span class="tl-zero">—</span>'}</td>`).join('')}
+    <td class="tl-miss tl-sep ${missClass}">${missPct}</td>
   </tr>`;
 }
 
-// Overall summary cards (Total Request / Completed / Ongoing)
-function renderTLSummary(jobs) {
-  const request   = jobs.filter(j => j.status !== 'Cancelled').length;
-  const completed = jobs.filter(j => j.status === 'Completed').length;
-  const ongoing   = jobs.filter(j => j.status !== 'Completed' && j.status !== 'Cancelled').length;
-  const card = (label, val, color) => `
-    <div style="padding:12px 14px;background:${color};border-radius:8px">
-      <div style="font-size:11px;color:#555;margin-bottom:4px">${label}</div>
-      <div style="font-size:24px;font-weight:700">${val}</div>
+// KPI strip: Total Request / Completed / Ongoing / Missed
+function renderTLKpiStrip(jobs, ongoing, completed) {
+  const request    = jobs.filter(j => j.status !== 'Cancelled').length;
+  const missedOngoing = ongoing.filter(j => (j._daysToDeadlineOngoing !== null) && j._daysToDeadlineOngoing < 0).length;
+  const missedCompleted = completed.filter(j => (j._daysToDeadlineCompleted !== null) && j._daysToDeadlineCompleted < 0).length;
+  const onTimeCompletedPct = completed.length ? (100 - (missedCompleted/completed.length)*100).toFixed(0) : '—';
+
+  const card = (cls, label, val, sub) => `
+    <div class="tl-kpi ${cls}">
+      <div class="lbl">${label}</div>
+      <div class="val">${val}</div>
+      <div class="sub">${sub}</div>
     </div>`;
-  document.getElementById('tlSummary').innerHTML =
-    card('Total Job Request<span style="font-size:9px;color:#888"> (excl. cancelled)</span>', request, '#dbeafe') +
-    card('Total Job Completed',                                                                 completed, '#dcfce7') +
-    card('Total Ongoing Job<span style="font-size:9px;color:#888"> (WIP &amp; Yet to Start)</span>', ongoing, '#fef3c7');
+  document.getElementById('tlKpiStrip').innerHTML =
+    card('',       'Total Requests',         request,   'excl. cancelled') +
+    card('ok',     'Completed',              completed.length, `${onTimeCompletedPct}% on time`) +
+    card('warn',   'Ongoing',                ongoing.length,   `${missedOngoing} past deadline`) +
+    card('danger', 'Missed Deadlines',       missedOngoing + missedCompleted, `${missedOngoing} open · ${missedCompleted} closed`);
 }
 
 // Enrich each job with timeliness fields
@@ -1310,39 +1409,22 @@ function renderTimeliness(jobs) {
   const ongoing   = jobs.filter(j => j.status !== 'Completed' && j.status !== 'Cancelled');
   const completed = jobs.filter(j => j.status === 'Completed');
 
-  renderTLSummary(jobs);
+  renderTLKpiStrip(jobs, ongoing, completed);
 
-  // ── Overview tables (single row: overall)
-  const ovOng = computeBucketRow(ongoing,   '_daysPassedOngoing',   '_daysToDeadlineOngoing');
-  const ovCmp = computeBucketRow(completed, '_daysPassedCompleted', '_daysToDeadlineCompleted');
-  document.getElementById('tlOverviewOngoing').innerHTML =
-    tlTableHeader('Overview', false) +
-    '<tbody>' + tlRow('All Ongoing', ovOng, ongoing.length, true, true) + '</tbody>';
-  document.getElementById('tlOverviewCompleted').innerHTML =
-    tlTableHeader('Overview', true) +
-    '<tbody>' + tlRow('All Completed', ovCmp, completed.length, true, true) + '</tbody>';
+  // Ongoing breakdown — by MKT Rep and by Task Requestor (ALL members / requestors)
+  renderTLGroupedTable('tlMktOngoing',   ongoing,   mktRepGroup,  'MKT Rep',   false, '_daysPassedOngoing',   '_daysToDeadlineOngoing');
+  renderTLGroupedTable('tlMgrOngoing',   ongoing,   managerGroup, 'Requestor', false, '_daysPassedOngoing',   '_daysToDeadlineOngoing');
 
-  // ── By MKT Rep
-  renderTLGroupedTable('tlMktOngoing',   ongoing,   mktRepGroup,   'MKT Rep', false, '_daysPassedOngoing',   '_daysToDeadlineOngoing',   ['Alan','Shin','Edward','FJ','Others']);
-  renderTLGroupedTable('tlMktCompleted', completed, mktRepGroup,   'MKT Rep', true,  '_daysPassedCompleted', '_daysToDeadlineCompleted', ['Alan','Shin','Edward','FJ','Others']);
-
-  // ── By Manager (Task Requestor)
-  renderTLGroupedTable('tlMgrOngoing',   ongoing,   managerGroup,  'Manager', false, '_daysPassedOngoing',   '_daysToDeadlineOngoing');
-  renderTLGroupedTable('tlMgrCompleted', completed, managerGroup,  'Manager', true,  '_daysPassedCompleted', '_daysToDeadlineCompleted');
+  // Completed breakdown — by MKT Rep and by Task Requestor (ALL members / requestors)
+  renderTLGroupedTable('tlMktCompleted', completed, mktRepGroup,  'MKT Rep',   true,  '_daysPassedCompleted', '_daysToDeadlineCompleted');
+  renderTLGroupedTable('tlMgrCompleted', completed, managerGroup, 'Requestor', true,  '_daysPassedCompleted', '_daysToDeadlineCompleted');
 }
 
-function renderTLGroupedTable(tableId, jobs, keyFn, groupLabel, isCompleted, passedField, deadlineField, fixedOrder) {
+function renderTLGroupedTable(tableId, jobs, keyFn, groupLabel, isCompleted, passedField, deadlineField) {
   const groups = groupBy(jobs, keyFn);
 
-  // Determine row order: either fixed order (with all present/missing keys) or by count desc
-  let orderedKeys;
-  if (fixedOrder) {
-    orderedKeys = fixedOrder.filter(k => groups[k] && groups[k].length > 0);
-    // Add any other keys not in fixedOrder
-    Object.keys(groups).forEach(k => { if (!fixedOrder.includes(k) && !orderedKeys.includes(k)) orderedKeys.push(k); });
-  } else {
-    orderedKeys = Object.keys(groups).sort((a,b) => groups[b].length - groups[a].length);
-  }
+  // Always sort by total count desc so largest owners appear first
+  const orderedKeys = Object.keys(groups).sort((a,b) => groups[b].length - groups[a].length);
 
   // Build rows
   let bodyHtml = '<tbody>';
@@ -1355,10 +1437,10 @@ function renderTLGroupedTable(tableId, jobs, keyFn, groupLabel, isCompleted, pas
     grand.total += row.total;
     PASSED_BUCKETS.forEach(b => grand.pCounts[b.key] += row.pCounts[b.key]);
     DEADLINE_BUCKETS.forEach(b => grand.dCounts[b.key] += row.dCounts[b.key]);
-    bodyHtml += tlRow(k, row, jobs.length, false, false);
+    bodyHtml += tlRow(k, row, false);
   }
   // Total row
-  bodyHtml += tlRow('TOTAL', grand, jobs.length, false, true);
+  bodyHtml += tlRow('TOTAL', grand, true);
   bodyHtml += '</tbody>';
 
   document.getElementById(tableId).innerHTML = tlTableHeader(groupLabel, isCompleted) + bodyHtml;
@@ -1406,6 +1488,12 @@ async function refreshData() {
     overlay.style.display = 'none';
   }
 }
+
+// Wire up Jobs-List sortable headers once
+document.addEventListener('click', (e) => {
+  const th = e.target.closest('#jobsThead th.sortable');
+  if (th && th.dataset.sort) sortJobsBy(th.dataset.sort);
+});
 
 // ── Boot ──
 refreshData();
