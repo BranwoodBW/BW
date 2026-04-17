@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MKT Job Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f5f3;--card:#fff;--border:#e8e8e4;--text:#1a1a18;--muted:#888;
+  --accent:#378ADD;--sidebar-w:215px;--hdr-h:68px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* ── header ── */
+.hdr{height:var(--hdr-h);background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;position:sticky;top:0;z-index:200}
+.hdr-left h1{font-size:18px;font-weight:600;letter-spacing:-.3px}
+.hdr-left .sub{font-size:11px;color:var(--muted);margin-top:2px}
+.btn-refresh{display:flex;align-items:center;gap:6px;font-size:12px;padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer;transition:background .15s}
+.btn-refresh:hover{background:var(--bg)}
+.btn-refresh svg{transition:transform .5s}
+.btn-refresh.spinning svg{animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── layout ── */
+.page{display:flex;min-height:calc(100vh - var(--hdr-h))}
+
+/* ── sidebar ── */
+.sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);flex-shrink:0;background:var(--card);border-right:1px solid var(--border);padding:14px 10px 20px;position:sticky;top:var(--hdr-h);height:calc(100vh - var(--hdr-h));overflow-y:auto;z-index:100}
+.sidebar-section{margin-bottom:12px}
+.section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.sidebar-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+.sidebar-divider{height:1px;background:var(--border);margin:10px 0}
+.sel-btns{display:flex;gap:3px}
+.sel-btn{font-size:9px;padding:1px 5px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;line-height:1.5}
+.sel-btn:hover{border-color:var(--accent);color:var(--accent)}
+.pills{display:flex;flex-wrap:wrap;gap:4px}
+.pill{display:inline-block;padding:3px 9px;border-radius:12px;font-size:11px;font-weight:500;border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer;user-select:none;transition:all .15s}
+.pill:hover{border-color:#9ca3af}
+.pill.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.cb-list{max-height:110px;overflow-y:auto}
+.cb-item{display:flex;align-items:center;gap:5px;font-size:11px;padding:2px 0;cursor:pointer}
+.cb-item input{cursor:pointer;flex-shrink:0}
+.fs-search{width:100%;font-size:11px;padding:4px 7px;border:1px solid var(--border);border-radius:5px;outline:none;background:#fafafa;color:var(--text);margin-bottom:4px}
+.fs-search:focus{border-color:var(--accent);background:#fff}
+.clear-btn{width:100%;font-size:11px;padding:5px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;margin-top:10px}
+.clear-btn:hover{border-color:#ef4444;color:#ef4444}
+
+/* ── content ── */
+.content{flex:1;padding:18px;min-width:0}
+
+/* ── kpi ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:18px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.kpi-label{font-size:11px;color:var(--muted);margin-bottom:6px}
+.kpi-val{font-size:22px;font-weight:700}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:3px}
+.kpi-green .kpi-val{color:#15803d}
+.kpi-blue .kpi-val{color:#1d4ed8}
+.kpi-red .kpi-val{color:#991b1b}
+.kpi-teal .kpi-val{color:#0d6e6e}
+
+/* ── tabs ── */
+.tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.tab{font-size:12px;padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:#fff;color:var(--muted);cursor:pointer;white-space:nowrap}
+.tab.active{background:var(--text);color:#fff;border-color:var(--text)}
+.section{display:none}.section.active{display:block}
+
+/* ── chart cards ── */
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+.chart-card.full{grid-column:1/-1}
+.chart-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px}
+
+/* ── tables ── */
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.data-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.data-tbl th{text-align:left;font-weight:500;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.3px;padding:7px 8px;border-bottom:1px solid var(--border);white-space:nowrap;background:#fafafa;position:sticky;top:0;z-index:1}
+.data-tbl td{padding:7px 8px;border-bottom:1px solid var(--border);vertical-align:middle}
+.data-tbl tr:last-child td{border-bottom:none}
+.data-tbl tr:hover td{background:#f9f9f7}
+.sn-cell{color:var(--muted);font-size:11px;font-weight:600;min-width:36px}
+
+/* ── badges ── */
+.badge{display:inline-block;padding:2px 7px;border-radius:9px;font-size:10px;font-weight:600;white-space:nowrap}
+.b-completed{background:#dcfce7;color:#15803d}
+.b-inprogress{background:#dbeafe;color:#1d4ed8}
+.b-pending{background:#fef9c3;color:#854d0e}
+.b-cancelled{background:#fee2e2;color:#991b1b}
+.b-onhold{background:#f1f5f9;color:#475569}
+.b-na{background:#f1f5f9;color:#6b7280}
+.b-other{background:#fdf4ff;color:#7e22ce}
+
+/* ── jobs list ── */
+.search-bar{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.search-input{flex:1;max-width:380px;font-size:13px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;outline:none;background:#fff;color:var(--text)}
+.search-input:focus{border-color:var(--accent)}
+.result-count{font-size:12px;color:var(--muted)}
+
+/* ── outlet/staff table ── */
+.summary-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.summary-tbl th{text-align:left;font-weight:500;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.3px;padding:6px 8px;border-bottom:1px solid var(--border);background:#fafafa}
+.summary-tbl td{padding:7px 8px;border-bottom:1px solid var(--border);vertical-align:middle}
+.summary-tbl tr:last-child td{border-bottom:none}
+.summary-tbl tr:hover td{background:#f9f9f7}
+.bar-bg{height:5px;background:#eeeeea;border-radius:3px;margin-top:5px;min-width:60px}
+.bar-fill{height:5px;background:var(--accent);border-radius:3px}
+
+/* ── loading ── */
+#loadingOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);color:#fff;font-size:14px;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:12px}
+.spinner{width:30px;height:30px;border:3px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+
+/* ── empty state ── */
+.empty{text-align:center;padding:40px;color:var(--muted);font-size:13px}
+
+/* ── responsive ── */
+@media(max-width:860px){
+  .kpi-grid{grid-template-columns:repeat(3,1fr)}
+  .charts-row{grid-template-columns:1fr}
+}
+@media(max-width:560px){
+  .kpi-grid{grid-template-columns:1fr 1fr}
+  .sidebar{display:none}
+}
+</style>
+</head>
+<body>
+
+<div id="loadingOverlay">
+  <div class="spinner"></div>
+  <div id="loadingText">Loading data…</div>
+</div>
+
+<div class="hdr">
+  <div class="hdr-left">
+    <h1>MKT Job Tracker</h1>
+    <div class="sub" id="subLine">Loading…</div>
+  </div>
+  <button class="btn-refresh" id="refreshBtn" onclick="refreshData()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+    </svg>
+    Refresh Data
+  </button>
+</div>
+
+<div class="page">
+
+  <!-- ═══ SIDEBAR ═══ -->
+  <aside class="sidebar">
+
+    <div class="sidebar-section">
+      <div class="section-hdr"><span class="sidebar-label">Year</span></div>
+      <div class="pills" id="fYear"></div>
+    </div>
+    <div class="sidebar-divider"></div>
+
+    <div class="sidebar-section">
+      <div class="section-hdr">
+        <span class="sidebar-label">Month</span>
+        <div class="sel-btns">
+          <button class="sel-btn" onclick="setAll('fMonth',true)">All</button>
+          <button class="sel-btn" onclick="setAll('fMonth',false)">None</button>
+        </div>
+      </div>
+      <div class="cb-list" id="fMonth"></div>
+    </div>
+    <div class="sidebar-divider"></div>
+
+    <div class="sidebar-section">
+      <div class="section-hdr">
+        <span class="sidebar-label">Job Status</span>
+        <div class="sel-btns">
+          <button class="sel-btn" onclick="setAll('fStatus',true)">All</button>
+          <button class="sel-btn" onclick="setAll('fStatus',false)">None</button>
+        </div>
+      </div>
+      <div class="cb-list" id="fStatus"></div>
+    </div>
+    <div class="sidebar-divider"></div>
+
+    <div class="sidebar-section">
+      <div class="section-hdr">
+        <span class="sidebar-label">MKT Manager</span>
+        <div class="sel-btns">
+          <button class="sel-btn" onclick="setAll('fManager',true)">All</button>
+          <button class="sel-btn" onclick="setAll('fManager',false)">None</button>
+        </div>
+      </div>
+      <div class="cb-list" id="fManager"></div>
+    </div>
+    <div class="sidebar-divider"></div>
+
+    <div class="sidebar-section">
+      <div class="section-hdr">
+        <span class="sidebar-label">Done By</span>
+        <div class="sel-btns">
+          <button class="sel-btn" onclick="setAll('fExecutor',true)">All</button>
+          <button class="sel-btn" onclick="setAll('fExecutor',false)">None</button>
+        </div>
+      </div>
+      <div class="cb-list" id="fExecutor"></div>
+    </div>
+    <div class="sidebar-divider"></div>
+
+    <div class="sidebar-section">
+      <div class="section-hdr">
+        <span class="sidebar-label">Purpose</span>
+        <div class="sel-btns">
+          <button class="sel-btn" onclick="setAll('fPurpose',true)">All</button>
+          <button class="sel-btn" onclick="setAll('fPurpose',false)">None</button>
+        </div>
+      </div>
+      <input class="fs-search" placeholder="Search purpose…" oninput="filterCBList('fPurpose',this.value)">
+      <div class="cb-list" id="fPurpose"></div>
+    </div>
+    <div class="sidebar-divider"></div>
+
+    <div class="sidebar-section">
+      <div class="section-hdr">
+        <span class="sidebar-label">Outlet</span>
+        <div class="sel-btns">
+          <button class="sel-btn" onclick="setAll('fOutlet',true)">All</button>
+          <button class="sel-btn" onclick="setAll('fOutlet',false)">None</button>
+        </div>
+      </div>
+      <input class="fs-search" placeholder="Search outlet…" oninput="filterCBList('fOutlet',this.value)">
+      <div class="cb-list" id="fOutlet"></div>
+    </div>
+    <div class="sidebar-divider"></div>
+
+    <button class="clear-btn" onclick="resetFilters()">Reset All Filters</button>
+    <div style="font-size:10px;color:var(--muted);margin-top:8px;text-align:center">Click filter instantly applies</div>
+
+  </aside>
+
+  <!-- ═══ MAIN CONTENT ═══ -->
+  <div class="content">
+
+    <!-- KPI Row -->
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-label">Total Jobs</div>
+        <div class="kpi-val" id="kTotal">—</div>
+        <div class="kpi-sub" id="kTotalSub">—</div>
+      </div>
+      <div class="kpi kpi-green">
+        <div class="kpi-label">Completed</div>
+        <div class="kpi-val" id="kCompleted">—</div>
+        <div class="kpi-sub" id="kCompletedSub">—</div>
+      </div>
+      <div class="kpi kpi-blue">
+        <div class="kpi-label">Open / In Progress</div>
+        <div class="kpi-val" id="kOpen">—</div>
+        <div class="kpi-sub" id="kOpenSub">—</div>
+      </div>
+      <div class="kpi kpi-red">
+        <div class="kpi-label">Cancelled</div>
+        <div class="kpi-val" id="kCancelled">—</div>
+        <div class="kpi-sub" id="kCancelledSub">—</div>
+      </div>
+      <div class="kpi kpi-teal">
+        <div class="kpi-label">Avg Days to Complete</div>
+        <div class="kpi-val" id="kAvg">—</div>
+        <div class="kpi-sub" id="kAvgSub">days (completed jobs)</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab(this,'overview')">Overview</button>
+      <button class="tab" onclick="switchTab(this,'staff')">By Staff</button>
+      <button class="tab" onclick="switchTab(this,'outlet')">By Outlet</button>
+      <button class="tab" onclick="switchTab(this,'jobs')">Jobs List</button>
+    </div>
+
+    <!-- ── Overview ── -->
+    <div id="sec-overview" class="section active">
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-title">Job Status Breakdown</div>
+          <div style="position:relative;height:220px"><canvas id="cStatus"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Monthly Jobs Created</div>
+          <div style="position:relative;height:220px"><canvas id="cMonthly"></canvas></div>
+        </div>
+      </div>
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-title">Jobs by Purpose (Top 12)</div>
+          <div style="position:relative;height:280px"><canvas id="cPurpose"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Jobs by Item Type (Top 12)</div>
+          <div style="position:relative;height:280px"><canvas id="cItems"></canvas></div>
+        </div>
+      </div>
+      <div class="charts-row">
+        <div class="chart-card full">
+          <div class="chart-title">Average Days to Complete by Purpose</div>
+          <div style="position:relative;height:200px"><canvas id="cAvgDays"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── By Staff ── -->
+    <div id="sec-staff" class="section">
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-title">Jobs Managed by MKT Rep</div>
+          <div style="position:relative;height:200px"><canvas id="cManager"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Jobs Executed by Staff</div>
+          <div style="position:relative;height:200px"><canvas id="cExecutor"></canvas></div>
+        </div>
+      </div>
+      <div class="chart-card" style="margin-bottom:14px">
+        <div class="chart-title">Staff Performance Summary</div>
+        <div class="tbl-wrap">
+          <table class="summary-tbl" id="staffTable">
+            <thead><tr>
+              <th>Name</th><th>Total Jobs</th><th>Completed</th>
+              <th>Open</th><th>Cancelled</th><th>Avg Days</th><th>Volume</th>
+            </tr></thead>
+            <tbody id="staffTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── By Outlet ── -->
+    <div id="sec-outlet" class="section">
+      <div class="charts-row">
+        <div class="chart-card full">
+          <div class="chart-title">Top Outlets by Job Count (stacked by status)</div>
+          <div style="position:relative;height:300px"><canvas id="cOutlet"></canvas></div>
+        </div>
+      </div>
+      <div class="chart-card" style="margin-bottom:14px">
+        <div class="chart-title">Outlet Breakdown</div>
+        <div class="tbl-wrap">
+          <table class="summary-tbl">
+            <thead><tr>
+              <th>#</th><th>Outlet Code</th><th>Outlet Name</th>
+              <th>Total</th><th>Completed</th><th>Open</th><th>Cancelled</th><th>Avg Days</th>
+            </tr></thead>
+            <tbody id="outletTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Jobs List ── -->
+    <div id="sec-jobs" class="section">
+      <div class="search-bar">
+        <input class="search-input" id="jobSearch" type="text"
+          placeholder="Search S/N, outlet, purpose, item, requester, detail…"
+          oninput="renderJobsTable()">
+        <span class="result-count" id="jobCount"></span>
+      </div>
+      <div class="tbl-wrap">
+        <table class="data-tbl">
+          <thead><tr>
+            <th>S/N</th>
+            <th>Status</th>
+            <th>Manager</th>
+            <th>Done By</th>
+            <th>Outlet</th>
+            <th>Purpose</th>
+            <th>Item</th>
+            <th>Requester</th>
+            <th>Date Created</th>
+            <th>Est. Date</th>
+            <th>Days</th>
+            <th>Design</th>
+            <th>Print / Delivery</th>
+          </tr></thead>
+          <tbody id="jobsTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /page -->
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════
+const SHEET_ID = '1KpobDao6l0WpajUT-ew-fwyqQ0cyyX5fj3vIjqIW6O8';
+const GID = '0';
+
+// Column indices — all 0-indexed from col G
+const CI = {
+  SN:0, MANAGER:1, EXECUTOR:2, STATUS:3, COMP_DATE:4,
+  DESIGN:5, PRINT:6,
+  OUTLET_CODE:9, OUTLET_NAME:10,
+  REQUESTER:11, DATE_CREATED:12, DATE_INFO:13, DATE_EST:14,
+  DAYS:19, PURPOSE:20, ITEMS:21,
+  DETAIL:23, DIMENSION:24, QTY:26, PRINT_BY:28
+};
+
+const MON = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+const MON_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+let allJobs = [];
+
+// ═══════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════
+function parseDate(s) {
+  if (!s || !s.trim()) return null;
+  const m = s.trim().match(/^(\d{1,2})-([A-Za-z]{3})-(\d{2,4})$/);
+  if (!m) return null;
+  const mo = MON[m[2].toLowerCase()];
+  if (mo === undefined) return null;
+  const yr = +m[3] < 100 ? 2000 + +m[3] : +m[3];
+  return new Date(yr, mo, +m[1]);
+}
+
+function fmtDate(dt) {
+  if (!dt) return '';
+  return `${String(dt.getDate()).padStart(2,'0')}-${MON_NAMES[dt.getMonth()]}-${dt.getFullYear()}`;
+}
+
+// Strip CJK / Korean / Japanese characters and everything after them
+function cleanLabel(s) {
+  if (!s) return '';
+  const m = s.trim().match(/^([^\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af\uff00-\uffef]+)/);
+  return m ? m[1].trim() : s.trim();
+}
+
+function normalizeStatus(s) {
+  if (!s || !s.trim()) return 'Pending';
+  const l = s.toLowerCase();
+  if (l.includes('completed')) return 'Completed';
+  if (l.includes('cancel')) return 'Cancelled';
+  if (l.includes('in progress') || l.includes('in-progress')) return 'In Progress';
+  if (l.includes('on hold')) return 'On Hold';
+  if (l.includes('not applicable')) return 'N/A';
+  if (l.includes('pending')) return 'Pending';
+  return s.trim();
+}
+
+function statusBadgeClass(status) {
+  return ({
+    'Completed':'b-completed','In Progress':'b-inprogress','Pending':'b-pending',
+    'Cancelled':'b-cancelled','On Hold':'b-onhold','N/A':'b-na'
+  })[status] || 'b-other';
+}
+
+function badge(status) {
+  return `<span class="badge ${statusBadgeClass(status)}">${status}</span>`;
+}
+
+function ym(dt) {
+  if (!dt) return null;
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+}
+
+function avg(arr) {
+  if (!arr.length) return null;
+  return arr.reduce((a,b) => a+b, 0) / arr.length;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FETCH & PARSE  (JSONP — works from file://, mobile, any origin)
+// ═══════════════════════════════════════════════════════════════
+
+// Convert a GViz DataTable cell to a plain string
+function cellStr(cell, type) {
+  if (!cell || cell.v == null) return '';
+  // Date columns: v may be a Date object or "Date(yr,mo,day)" string
+  if (type === 'date' || type === 'datetime') {
+    if (cell.v instanceof Date) {
+      const d = cell.v;
+      return `${String(d.getDate()).padStart(2,'0')}-${MON_NAMES[d.getMonth()]}-${String(d.getFullYear()).slice(2)}`;
+    }
+    const dm = String(cell.v).match(/Date\((\d+),(\d+),(\d+)\)/);
+    if (dm) return `${String(+dm[3]).padStart(2,'0')}-${MON_NAMES[+dm[2]]}-${String(+dm[1]).slice(2)}`;
+    return cell.f != null ? String(cell.f) : '';
+  }
+  return cell.f != null ? String(cell.f) : String(cell.v);
+}
+
+function parseGvizTable(table) {
+  const cols = table.cols || [];
+  const rows = table.rows || [];
+  const jobs = [];
+
+  for (const row of rows) {
+    const c = row.c || [];
+    // Build string array; GViz rows are already data-only (no header row)
+    const r = cols.map((col, i) => cellStr(c[i], col.type));
+
+    const snRaw = (r[CI.SN] || '').trim();
+    if (!snRaw || isNaN(+snRaw)) continue;
+
+    const purposeRaw = (r[CI.PURPOSE] || '').trim();
+    const itemRaw    = (r[CI.ITEMS]   || '').trim();
+    const statusRaw  = (r[CI.STATUS]  || '').trim();
+    const designRaw  = (r[CI.DESIGN]  || '').trim();
+    const printRaw   = (r[CI.PRINT]   || '').trim();
+
+    const purpose = cleanLabel(purposeRaw) || purposeRaw || 'Unknown';
+    const item    = cleanLabel(itemRaw)    || itemRaw    || 'Unknown';
+    const status  = normalizeStatus(statusRaw);
+    const design  = normalizeStatus(designRaw);
+    const print   = cleanLabel(printRaw)   || printRaw;
+
+    const daysTaken = parseFloat((r[CI.DAYS] || '').replace(/[,$\s]/g, '')) || null;
+
+    jobs.push({
+      sn:          snRaw,
+      manager:     (r[CI.MANAGER]     || '').trim() || 'Unknown',
+      executor:    (r[CI.EXECUTOR]    || '').trim() || 'Unknown',
+      status,
+      compDate:    parseDate(r[CI.COMP_DATE]),
+      design,
+      print,
+      outletCode:  (r[CI.OUTLET_CODE] || '').trim(),
+      outletName:  (r[CI.OUTLET_NAME] || '').trim(),
+      requester:   (r[CI.REQUESTER]   || '').trim(),
+      dateCreated: parseDate(r[CI.DATE_CREATED]),
+      dateInfo:    parseDate(r[CI.DATE_INFO]),
+      dateEst:     parseDate(r[CI.DATE_EST]),
+      daysTaken,
+      purpose, purposeRaw, item, itemRaw,
+      detail:      (r[CI.DETAIL]    || '').trim(),
+      dimension:   (r[CI.DIMENSION] || '').trim(),
+      qty:         (r[CI.QTY]       || '').trim(),
+    });
+  }
+  return jobs;
+}
+
+function fetchData() {
+  return new Promise((resolve, reject) => {
+    const cb = 'gvizCb' + Date.now();
+    const script = document.createElement('script');
+    let done = false;
+
+    function finish(fn) {
+      if (done) return; done = true;
+      delete window[cb]; script.remove(); fn();
+    }
+
+    window[cb] = resp => finish(() => {
+      if (resp.status === 'error') {
+        const msg = (resp.errors || [{}])[0].message || 'Google Sheets returned an error';
+        reject(new Error(msg));
+      } else {
+        try { resolve(parseGvizTable(resp.table)); }
+        catch(e) { reject(e); }
+      }
+    });
+
+    script.onerror = () => finish(() =>
+      reject(new Error('Network error — check your internet connection and ensure the sheet is publicly shared (Anyone with link → Viewer)'))
+    );
+    setTimeout(() => finish(() => reject(new Error('Request timed out after 20 s'))), 20000);
+
+    script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?gid=${GID}&range=G:AJ&tqx=responseHandler:${cb}`;
+    document.head.appendChild(script);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SIDEBAR HELPERS
+// ═══════════════════════════════════════════════════════════════
+function pillToggle(el) { el.classList.toggle('on'); applyFilters(); }
+
+function setAll(id, on) {
+  const el = document.getElementById(id); if (!el) return;
+  el.querySelectorAll('.pill').forEach(p => p.classList.toggle('on', on));
+  el.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = on);
+  applyFilters();
+}
+
+function filterCBList(id, q) {
+  const s = q.toLowerCase();
+  document.querySelectorAll(`#${id} .cb-item`).forEach(item => {
+    item.style.display = (!s || item.textContent.toLowerCase().includes(s)) ? '' : 'none';
+  });
+}
+
+function getSel(id) {
+  const el = document.getElementById(id); if (!el) return [];
+  if (el.querySelector('.pill'))
+    return Array.from(el.querySelectorAll('.pill.on')).map(p => p.dataset.value);
+  return Array.from(el.querySelectorAll('input[type=checkbox]:checked')).map(cb => cb.value);
+}
+
+function populateCB(id, items) {
+  // items: array of {value, label} or plain strings
+  const el = document.getElementById(id); el.innerHTML = '';
+  items.forEach(item => {
+    const value = typeof item === 'string' ? item : item.value;
+    const label = typeof item === 'string' ? item : item.label;
+    const lbl = document.createElement('label');
+    lbl.className = 'cb-item';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.checked = true; cb.value = value;
+    cb.onchange = () => applyFilters();
+    const txt = document.createElement('span');
+    txt.textContent = label;
+    lbl.appendChild(cb); lbl.appendChild(txt);
+    el.appendChild(lbl);
+  });
+}
+
+function resetFilters() {
+  document.querySelectorAll('.sidebar .pill').forEach(p => p.classList.add('on'));
+  document.querySelectorAll('.sidebar input[type=checkbox]').forEach(cb => cb.checked = true);
+  applyFilters();
+}
+
+function applyFilters() { render(); }
+
+// ═══════════════════════════════════════════════════════════════
+// INIT FILTERS  (called after data loads)
+// ═══════════════════════════════════════════════════════════════
+function initFilters() {
+  // Year pills
+  const years = [...new Set(allJobs.map(j => j.dateCreated?.getFullYear()).filter(Boolean))].sort((a,b)=>b-a);
+  const fYear = document.getElementById('fYear');
+  fYear.innerHTML = '';
+  years.forEach(y => {
+    const p = document.createElement('span');
+    p.className = 'pill on'; p.dataset.value = String(y); p.textContent = y;
+    p.onclick = () => pillToggle(p);
+    fYear.appendChild(p);
+  });
+
+  // Month checkboxes — value = "YYYY-MM", label = "Jan 2025"
+  const monthKeys = [...new Set(allJobs.map(j => ym(j.dateCreated)).filter(Boolean))].sort().reverse();
+  populateCB('fMonth', monthKeys.map(k => {
+    const [y,m] = k.split('-');
+    return { value: k, label: `${MON_NAMES[+m-1]} ${y}` };
+  }));
+
+  // Status
+  const statuses = [...new Set(allJobs.map(j => j.status))].sort();
+  populateCB('fStatus', statuses);
+
+  // Manager
+  const managers = [...new Set(allJobs.map(j => j.manager))].filter(Boolean).sort();
+  populateCB('fManager', managers);
+
+  // Executor
+  const executors = [...new Set(allJobs.map(j => j.executor))].filter(Boolean).sort();
+  populateCB('fExecutor', executors);
+
+  // Purpose
+  const purposes = [...new Set(allJobs.map(j => j.purpose).filter(Boolean))].sort();
+  populateCB('fPurpose', purposes);
+
+  // Outlet code
+  const outlets = [...new Set(allJobs.map(j => j.outletCode).filter(Boolean))].sort();
+  populateCB('fOutlet', outlets);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FILTER
+// ═══════════════════════════════════════════════════════════════
+function getFiltered() {
+  const selYears    = new Set(getSel('fYear'));
+  const selMonths   = new Set(getSel('fMonth'));
+  const selStatuses = new Set(getSel('fStatus'));
+  const selManagers = new Set(getSel('fManager'));
+  const selExecs    = new Set(getSel('fExecutor'));
+  const selPurposes = new Set(getSel('fPurpose'));
+  const selOutlets  = new Set(getSel('fOutlet'));
+
+  return allJobs.filter(j => {
+    const yr = j.dateCreated ? String(j.dateCreated.getFullYear()) : null;
+    const mo = ym(j.dateCreated);
+    if (selYears.size    && yr && !selYears.has(yr))         return false;
+    if (selMonths.size   && mo && !selMonths.has(mo))        return false;
+    if (selStatuses.size && !selStatuses.has(j.status))      return false;
+    if (selManagers.size && !selManagers.has(j.manager))     return false;
+    if (selExecs.size    && !selExecs.has(j.executor))       return false;
+    if (selPurposes.size && !selPurposes.has(j.purpose))     return false;
+    if (selOutlets.size  && j.outletCode && !selOutlets.has(j.outletCode)) return false;
+    return true;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CHARTS
+// ═══════════════════════════════════════════════════════════════
+const _charts = {};
+function mkChart(id, cfg) {
+  if (_charts[id]) { _charts[id].destroy(); }
+  _charts[id] = new Chart(document.getElementById(id), cfg);
+}
+
+const PALETTE = ['#378ADD','#22c55e','#f59e0b','#8b5cf6','#ef4444','#10b981','#f97316','#06b6d4','#ec4899','#64748b','#84cc16','#a855f7'];
+const STATUS_COLORS = {
+  'Completed':'#22c55e','In Progress':'#3b82f6','Pending':'#f59e0b',
+  'Cancelled':'#ef4444','On Hold':'#94a3b8','N/A':'#cbd5e1','Unknown':'#e2e8f0'
+};
+
+function barOpts(horizontal) {
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales: horizontal ? {
+      x:{beginAtZero:true,ticks:{font:{size:10}},grid:{color:'#e8e8e4'}},
+      y:{ticks:{font:{size:10}},grid:{display:false}}
+    } : {
+      y:{beginAtZero:true,ticks:{font:{size:10}},grid:{color:'#e8e8e4'}},
+      x:{ticks:{font:{size:10},maxRotation:40},grid:{display:false}}
+    }
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════
+function render() {
+  const jobs = getFiltered();
+  renderKPIs(jobs);
+  const tab = document.querySelector('.section.active')?.id?.replace('sec-','');
+  if (tab === 'overview') renderOverview(jobs);
+  else if (tab === 'staff')  renderStaff(jobs);
+  else if (tab === 'outlet') renderOutlet(jobs);
+  else if (tab === 'jobs')   renderJobsTable();
+}
+
+function renderKPIs(jobs) {
+  const total     = jobs.length;
+  const completed = jobs.filter(j => j.status === 'Completed').length;
+  const cancelled = jobs.filter(j => j.status === 'Cancelled').length;
+  const open      = total - completed - cancelled;
+  const compDays  = jobs.filter(j => j.status === 'Completed' && j.daysTaken !== null).map(j => j.daysTaken);
+  const avgDays   = avg(compDays);
+
+  document.getElementById('kTotal').textContent     = total;
+  document.getElementById('kTotalSub').textContent  = `${total} jobs tracked`;
+  document.getElementById('kCompleted').textContent = completed;
+  document.getElementById('kCompletedSub').textContent = total ? `${((completed/total)*100).toFixed(0)}% of total` : '—';
+  document.getElementById('kOpen').textContent      = open;
+  document.getElementById('kOpenSub').textContent   = 'not yet done';
+  document.getElementById('kCancelled').textContent = cancelled;
+  document.getElementById('kCancelledSub').textContent = total ? `${((cancelled/total)*100).toFixed(0)}% of total` : '—';
+  document.getElementById('kAvg').textContent       = avgDays !== null ? avgDays.toFixed(1) : '—';
+  document.getElementById('kAvgSub').textContent    = compDays.length ? `based on ${compDays.length} completed jobs` : 'no data';
+}
+
+function renderOverview(jobs) {
+  // Status donut
+  const sCounts = {};
+  jobs.forEach(j => sCounts[j.status] = (sCounts[j.status] || 0) + 1);
+  const sLabels = Object.keys(sCounts);
+  mkChart('cStatus', {
+    type:'doughnut',
+    data:{
+      labels: sLabels,
+      datasets:[{
+        data: sLabels.map(k => sCounts[k]),
+        backgroundColor: sLabels.map(k => STATUS_COLORS[k] || '#94a3b8'),
+        borderWidth:2, borderColor:'#fff'
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'right',labels:{font:{size:11},padding:10,boxWidth:12}},
+        tooltip:{callbacks:{label:ctx => ` ${ctx.label}: ${ctx.parsed} (${((ctx.parsed/jobs.length)*100).toFixed(0)}%)`}}
+      }
+    }
+  });
+
+  // Monthly trend (bar by date created)
+  const mMap = {};
+  jobs.forEach(j => { const k = ym(j.dateCreated); if (k) mMap[k] = (mMap[k]||0)+1; });
+  const mKeys = Object.keys(mMap).sort();
+  mkChart('cMonthly', {
+    type:'bar',
+    data:{
+      labels: mKeys.map(k => { const [y,m]=k.split('-'); return `${MON_NAMES[+m-1]} ${y.slice(2)}`; }),
+      datasets:[{ label:'Jobs', data:mKeys.map(k=>mMap[k]), backgroundColor:'#378ADD', borderRadius:4 }]
+    },
+    options: barOpts(false)
+  });
+
+  // Purpose horizontal bar
+  const pMap = {};
+  jobs.forEach(j => pMap[j.purpose] = (pMap[j.purpose]||0)+1);
+  const pSorted = Object.entries(pMap).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  mkChart('cPurpose', {
+    type:'bar',
+    data:{
+      labels: pSorted.map(([k])=>k),
+      datasets:[{ label:'Jobs', data:pSorted.map(([,v])=>v), backgroundColor:'#8b5cf6', borderRadius:3 }]
+    },
+    options: { ...barOpts(true), plugins:{ legend:{ display:false } } }
+  });
+
+  // Item type horizontal bar
+  const iMap = {};
+  jobs.forEach(j => { if (j.item) iMap[j.item] = (iMap[j.item]||0)+1; });
+  const iSorted = Object.entries(iMap).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  mkChart('cItems', {
+    type:'bar',
+    data:{
+      labels: iSorted.map(([k])=>k),
+      datasets:[{ label:'Jobs', data:iSorted.map(([,v])=>v), backgroundColor:'#f59e0b', borderRadius:3 }]
+    },
+    options: { ...barOpts(true), plugins:{ legend:{ display:false } } }
+  });
+
+  // Avg days to complete by purpose
+  const daysByP = {};
+  jobs.filter(j => j.daysTaken !== null && j.status === 'Completed').forEach(j => {
+    if (!daysByP[j.purpose]) daysByP[j.purpose] = [];
+    daysByP[j.purpose].push(j.daysTaken);
+  });
+  const avgP = Object.entries(daysByP)
+    .map(([k,v]) => [k, avg(v)])
+    .filter(([,v]) => v !== null)
+    .sort((a,b) => b[1]-a[1]).slice(0,14);
+  mkChart('cAvgDays', {
+    type:'bar',
+    data:{
+      labels: avgP.map(([k])=>k),
+      datasets:[{ label:'Avg Days', data:avgP.map(([,v])=>+v.toFixed(1)), backgroundColor:'#10b981', borderRadius:4 }]
+    },
+    options: barOpts(false)
+  });
+}
+
+function renderStaff(jobs) {
+  const mkr = {}, exc = {};
+  jobs.forEach(j => {
+    mkr[j.manager]  = (mkr[j.manager]  || 0) + 1;
+    exc[j.executor] = (exc[j.executor] || 0) + 1;
+  });
+
+  const mkrSorted = Object.entries(mkr).sort((a,b)=>b[1]-a[1]);
+  mkChart('cManager', {
+    type:'bar',
+    data:{
+      labels: mkrSorted.map(([k])=>k),
+      datasets:[{ label:'Jobs Managed', data:mkrSorted.map(([,v])=>v), backgroundColor:'#378ADD', borderRadius:6 }]
+    },
+    options: barOpts(false)
+  });
+
+  const excSorted = Object.entries(exc).sort((a,b)=>b[1]-a[1]);
+  mkChart('cExecutor', {
+    type:'bar',
+    data:{
+      labels: excSorted.map(([k])=>k),
+      datasets:[{ label:'Jobs Executed', data:excSorted.map(([,v])=>v), backgroundColor:'#8b5cf6', borderRadius:6 }]
+    },
+    options: barOpts(false)
+  });
+
+  // Staff performance table
+  const staffMap = {};
+  jobs.forEach(j => {
+    const k = j.executor;
+    if (!staffMap[k]) staffMap[k] = { total:0, completed:0, cancelled:0, open:0, days:[] };
+    staffMap[k].total++;
+    if (j.status === 'Completed') {
+      staffMap[k].completed++;
+      if (j.daysTaken !== null) staffMap[k].days.push(j.daysTaken);
+    } else if (j.status === 'Cancelled') staffMap[k].cancelled++;
+    else staffMap[k].open++;
+  });
+
+  const maxTotal = Math.max(...Object.values(staffMap).map(d=>d.total), 1);
+  const rows = Object.entries(staffMap).sort((a,b)=>b[1].total-a[1].total);
+  document.getElementById('staffTbody').innerHTML = rows.map(([name, d]) => {
+    const a = avg(d.days);
+    const pct = (d.total / maxTotal * 100).toFixed(0);
+    return `<tr>
+      <td><strong>${name}</strong></td>
+      <td><strong>${d.total}</strong></td>
+      <td><span class="badge b-completed">${d.completed}</span></td>
+      <td>${d.open ? `<span class="badge b-inprogress">${d.open}</span>` : '<span style="color:var(--muted)">—</span>'}</td>
+      <td>${d.cancelled ? `<span class="badge b-cancelled">${d.cancelled}</span>` : '<span style="color:var(--muted)">—</span>'}</td>
+      <td>${a !== null ? a.toFixed(1)+' d' : '—'}</td>
+      <td style="min-width:80px"><div class="bar-bg"><div class="bar-fill" style="width:${pct}%"></div></div></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderOutlet(jobs) {
+  const outMap = {};
+  jobs.forEach(j => {
+    const k = j.outletCode || '(none)';
+    if (!outMap[k]) outMap[k] = { name:j.outletName, total:0, completed:0, open:0, cancelled:0, days:[] };
+    outMap[k].total++;
+    if (j.status === 'Completed') {
+      outMap[k].completed++;
+      if (j.daysTaken !== null) outMap[k].days.push(j.daysTaken);
+    } else if (j.status === 'Cancelled') outMap[k].cancelled++;
+    else outMap[k].open++;
+  });
+
+  const sorted = Object.entries(outMap).sort((a,b)=>b[1].total-a[1].total);
+  const top = sorted.slice(0, 20);
+
+  mkChart('cOutlet', {
+    type:'bar',
+    data:{
+      labels: top.map(([k])=>k),
+      datasets:[
+        { label:'Completed',  data:top.map(([,d])=>d.completed),  backgroundColor:'#22c55e', stack:'s', borderRadius:2 },
+        { label:'Open',       data:top.map(([,d])=>d.open),       backgroundColor:'#3b82f6', stack:'s', borderRadius:2 },
+        { label:'Cancelled',  data:top.map(([,d])=>d.cancelled),  backgroundColor:'#ef4444', stack:'s', borderRadius:2 },
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ labels:{ font:{size:11}, boxWidth:12 } } },
+      scales:{
+        y:{ beginAtZero:true, stacked:true, ticks:{font:{size:10}}, grid:{color:'#e8e8e4'} },
+        x:{ stacked:true, ticks:{font:{size:10},maxRotation:45}, grid:{display:false} }
+      }
+    }
+  });
+
+  document.getElementById('outletTbody').innerHTML = sorted.map(([code, d], i) => {
+    const a = avg(d.days);
+    return `<tr>
+      <td class="sn-cell">${i+1}</td>
+      <td><strong>${code}</strong></td>
+      <td style="font-size:11px">${d.name || ''}</td>
+      <td><strong>${d.total}</strong></td>
+      <td><span class="badge b-completed">${d.completed}</span></td>
+      <td>${d.open ? `<span class="badge b-inprogress">${d.open}</span>` : '—'}</td>
+      <td>${d.cancelled ? `<span class="badge b-cancelled">${d.cancelled}</span>` : '—'}</td>
+      <td>${a !== null ? a.toFixed(1)+' d' : '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderJobsTable() {
+  const jobs = getFiltered();
+  const q = (document.getElementById('jobSearch')?.value || '').toLowerCase().trim();
+  const filtered = q ? jobs.filter(j =>
+    j.sn.includes(q) ||
+    j.outletCode.toLowerCase().includes(q) ||
+    j.outletName.toLowerCase().includes(q) ||
+    j.purpose.toLowerCase().includes(q) ||
+    j.item.toLowerCase().includes(q) ||
+    j.requester.toLowerCase().includes(q) ||
+    j.manager.toLowerCase().includes(q) ||
+    j.executor.toLowerCase().includes(q) ||
+    j.detail.toLowerCase().includes(q) ||
+    j.status.toLowerCase().includes(q)
+  ) : jobs;
+
+  document.getElementById('jobCount').textContent = `${filtered.length} of ${jobs.length} jobs`;
+
+  document.getElementById('jobsTbody').innerHTML = filtered.map(j => `<tr>
+    <td class="sn-cell">${j.sn}</td>
+    <td>${badge(j.status)}</td>
+    <td>${j.manager}</td>
+    <td>${j.executor}</td>
+    <td>
+      <strong style="font-size:11px">${j.outletCode}</strong>
+      ${j.outletName ? `<br><span style="font-size:10px;color:var(--muted)">${j.outletName}</span>` : ''}
+    </td>
+    <td style="white-space:nowrap">${j.purpose}</td>
+    <td style="white-space:nowrap">${j.item}</td>
+    <td>${j.requester}</td>
+    <td style="white-space:nowrap;font-size:11px">${j.dateCreated ? fmtDate(j.dateCreated) : '—'}</td>
+    <td style="white-space:nowrap;font-size:11px">${j.dateEst ? fmtDate(j.dateEst) : '—'}</td>
+    <td style="text-align:right;font-size:11px">${j.daysTaken !== null ? j.daysTaken : '—'}</td>
+    <td>${badge(j.design)}</td>
+    <td style="font-size:11px;white-space:nowrap">${j.print || '—'}</td>
+  </tr>`).join('') || `<tr><td colspan="13" class="empty">No jobs match the current filters.</td></tr>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════════════
+function switchTab(el, name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('sec-' + name).classList.add('active');
+  const jobs = getFiltered();
+  if (name === 'overview') renderOverview(jobs);
+  else if (name === 'staff')  renderStaff(jobs);
+  else if (name === 'outlet') renderOutlet(jobs);
+  else if (name === 'jobs')   renderJobsTable();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REFRESH
+// ═══════════════════════════════════════════════════════════════
+async function refreshData() {
+  const btn     = document.getElementById('refreshBtn');
+  const overlay = document.getElementById('loadingOverlay');
+  const loadTxt = document.getElementById('loadingText');
+  btn.classList.add('spinning'); btn.disabled = true;
+  overlay.style.display = 'flex';
+  loadTxt.textContent = 'Fetching live data from Google Sheets…';
+
+  try {
+    allJobs = await fetchData();
+    initFilters();
+    render();
+    const now = new Date().toLocaleTimeString('en-SG', { hour:'2-digit', minute:'2-digit' });
+    document.getElementById('subLine').textContent =
+      `${allJobs.length} jobs loaded · Last refreshed ${now}`;
+  } catch (e) {
+    alert('Could not fetch data: ' + e.message);
+  } finally {
+    btn.classList.remove('spinning'); btn.disabled = false;
+    overlay.style.display = 'none';
+  }
+}
+
+// ── Boot ──
+refreshData();
+</script>
+</body>
+</html>
