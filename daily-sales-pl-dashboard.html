@@ -11576,15 +11576,57 @@ function renderPLTab() {
     const mgrs = [...new Set([...Object.keys(mgrRev), ...Object.keys(mgrCost)])]
       .sort((a,b) => (mgrRev[b]||0) - (mgrRev[a]||0));
 
-    // Resize chart height based on number of managers (min 200px)
-    const mgrH = Math.max(200, mgrs.length * 48);
-    document.getElementById('pl-mgr-wrap').style.height = mgrH + 'px';
+    // Fixed height for vertical bar chart
+    document.getElementById('pl-mgr-wrap').style.height = '340px';
 
     const mgrCtx = document.getElementById('pl-mgr-chart');
     if (plCharts.mgr) plCharts.mgr.destroy();
     if (mgrs.length && mgrCtx) {
+
+      // Custom plugin: paint dollar value above every bar,
+      // and cost-% beneath the dollar value on cost bars
+      const _fmtBar = v => v >= 1e6 ? '$'+(v/1e6).toFixed(2)+'M' : '$'+(v/1e3).toFixed(1)+'K';
+      const barLabelPlugin = {
+        id: 'mgrBarLabels',
+        afterDatasetsDraw(chart) {
+          const ctx = chart.ctx;
+          chart.data.datasets.forEach((ds, di) => {
+            const meta = chart.getDatasetMeta(di);
+            const isCost = ds.label === 'Total Cost';
+            meta.data.forEach((bar, j) => {
+              const v = ds.data[j]; if (!v) return;
+              const mgr = chart.data.labels[j];
+              ctx.save();
+              ctx.textAlign = 'center';
+              if (isCost) {
+                // Dollar value on upper line
+                ctx.fillStyle = '#333';
+                ctx.font = '700 8.5px sans-serif';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText(_fmtBar(v), bar.x, bar.y - 13);
+                // Cost % on lower line in red
+                const rev = mgrRev[mgr] || 0;
+                if (rev > 0) {
+                  ctx.fillStyle = '#dc2626';
+                  ctx.font = '600 8px sans-serif';
+                  ctx.fillText((v/rev*100).toFixed(1)+'%', bar.x, bar.y - 3);
+                }
+              } else {
+                // Revenue: single dollar value
+                ctx.fillStyle = '#1a4fa0';
+                ctx.font = '700 8.5px sans-serif';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText(_fmtBar(v), bar.x, bar.y - 3);
+              }
+              ctx.restore();
+            });
+          });
+        }
+      };
+
       plCharts.mgr = new Chart(mgrCtx, {
         type: 'bar',
+        plugins: [barLabelPlugin],
         data: {
           labels: mgrs,
           datasets: [
@@ -11593,15 +11635,22 @@ function renderPLTab() {
           ]
         },
         options: {
-          indexAxis: 'y',
           responsive: true, maintainAspectRatio: false,
+          layout: { padding: { top: 28 } },
           plugins: {
             legend: { labels:{color:'#777',font:{size:10},boxWidth:12,boxHeight:12} },
-            tooltip: { callbacks:{ label: c => c.dataset.label+': '+plFmtFull(c.raw) } }
+            tooltip: { callbacks:{ label: c => {
+              const lbl = c.dataset.label+': '+plFmtFull(c.raw);
+              if (c.dataset.label === 'Total Cost') {
+                const rev = mgrRev[mgrs[c.dataIndex]] || 0;
+                return rev > 0 ? lbl+' ('+(c.raw/rev*100).toFixed(1)+'% of rev)' : lbl;
+              }
+              return lbl;
+            }}}
           },
           scales: {
-            x: { grid:{color:'rgba(0,0,0,.04)'}, ticks:{color:'#999',font:{size:10},callback:v=>plFmt(v)} },
-            y: { grid:{display:false}, ticks:{color:'#444',font:{size:11,weight:'600'}} }
+            x: { grid:{color:'rgba(0,0,0,.04)'}, ticks:{color:'#444',font:{size:11,weight:'600'}} },
+            y: { grid:{color:'rgba(0,0,0,.04)'}, ticks:{color:'#999',font:{size:10},callback:v=>plFmt(v)} }
           }
         }
       });
