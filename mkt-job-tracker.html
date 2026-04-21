@@ -160,14 +160,33 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .est-ontime{color:#15803d;font-weight:600}
 .est-ok{color:#1a1a18}
 .est-cancel{color:#94a3b8}
+/* Job-list expand row */
+.expand-btn{cursor:pointer;padding:0;background:none;border:none;font-size:11px;color:var(--muted);width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;border-radius:3px;transition:transform .15s,color .15s}
+.expand-btn:hover{color:var(--accent);background:#f0f0ec}
+.expand-btn.open{color:var(--accent);transform:rotate(90deg)}
+.expand-col{width:24px;text-align:center;padding:6px 4px}
+.detail-row{display:none;background:#fafaf5}
+.detail-row.open{display:table-row}
+.detail-row td{padding:10px 18px 12px 30px;font-size:12px;color:#333;line-height:1.55;white-space:pre-wrap;border-bottom:2px solid var(--border);background:#fafaf5}
+.detail-block{display:flex;gap:18px;flex-wrap:wrap}
+.detail-field{min-width:160px;max-width:480px}
+.detail-field .lbl{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;display:block}
+.detail-field .val{font-size:12px;color:#1a1a18;white-space:pre-wrap;word-break:break-word}
+.detail-field .val.empty{color:#cbd5e1;font-style:italic}
 /* Est Date legend */
 .est-legend{display:flex;align-items:center;gap:6px;font-size:10px;flex-wrap:wrap;margin-left:auto}
-.est-legend-title{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.3px}
-.est-legend .est-missed,.est-legend .est-urgent,.est-legend .est-warning{padding:2px 8px;font-size:10px}
-.est-legend-pill{padding:2px 8px;border-radius:4px;font-size:10px;border:1px solid var(--border)}
-.est-legend-pill.est-ontime{border-color:#bbf7d0;background:#f0fdf4}
-.est-legend-pill.est-ok{background:#fff}
-.est-legend-pill.est-cancel{background:#f8fafc;border-color:#e2e8f0}
+.est-legend-title{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.3px;margin-right:2px}
+.est-chip{padding:3px 9px;font-size:10px;border-radius:12px;border:1px solid transparent;cursor:pointer;transition:all .15s;user-select:none;font-weight:600;display:inline-flex;align-items:center;gap:5px}
+.est-chip .est-chip-count{font-weight:700;background:rgba(0,0,0,.08);padding:1px 5px;border-radius:8px;font-size:9px}
+.est-chip:hover{filter:brightness(.95)}
+.est-chip.dim{opacity:.4}
+.est-chip[data-est="missed"] {background:#fee2e2;color:#991b1b;border-color:#fecaca}
+.est-chip[data-est="urgent"] {background:#fef2f2;color:#b91c1c;border-color:#fee2e2}
+.est-chip[data-est="warning"]{background:#fffbeb;color:#92400e;border-color:#fde68a}
+.est-chip[data-est="ok"]     {background:#f1f5f9;color:#475569;border-color:#e2e8f0}
+.est-chip[data-est="ontime"] {background:#dcfce7;color:#15803d;border-color:#bbf7d0}
+.est-chip[data-est="cancel"] {background:#f8fafc;color:#94a3b8;border-color:#e2e8f0}
+.est-chip.active{outline:2px solid #1a1a18;outline-offset:1px}
 /* sortable headers */
 th.sortable{cursor:pointer;user-select:none;position:relative;padding-right:18px!important}
 th.sortable:hover{background:#f0f0ec}
@@ -344,8 +363,8 @@ th.sortable.sort-desc::after{border-top-color:#1a1a18;margin-top:-2px;opacity:1}
     <div id="sec-overview" class="section active">
       <div class="charts-row">
         <div class="chart-card">
-          <div class="chart-title">Job Status Breakdown</div>
-          <div style="position:relative;height:220px"><canvas id="cStatus"></canvas></div>
+          <div class="chart-title">Monthly Jobs Completed</div>
+          <div style="position:relative;height:220px"><canvas id="cMonthlyCompleted"></canvas></div>
         </div>
         <div class="chart-card">
           <div class="chart-title">Monthly Jobs Created</div>
@@ -354,18 +373,21 @@ th.sortable.sort-desc::after{border-top-color:#1a1a18;margin-top:-2px;opacity:1}
       </div>
       <div class="charts-row">
         <div class="chart-card">
-          <div class="chart-title">Jobs by Purpose (Top 12)</div>
-          <div style="position:relative;height:280px"><canvas id="cPurpose"></canvas></div>
+          <div class="chart-title">Intake vs Throughput (per month)</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:-8px;margin-bottom:10px">Are we keeping up? When created &gt; completed, backlog grows.</div>
+          <div style="position:relative;height:240px"><canvas id="cIntakeVsThrough"></canvas></div>
         </div>
         <div class="chart-card">
-          <div class="chart-title">Jobs by Item Type (Top 12)</div>
-          <div style="position:relative;height:280px"><canvas id="cItems"></canvas></div>
+          <div class="chart-title">On-Time Completion Rate (per month)</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:-8px;margin-bottom:10px">% of jobs completed by their estimated date.</div>
+          <div style="position:relative;height:240px"><canvas id="cOnTimeRate"></canvas></div>
         </div>
       </div>
       <div class="charts-row">
         <div class="chart-card full">
-          <div class="chart-title">Average Days to Complete by Purpose</div>
-          <div style="position:relative;height:200px"><canvas id="cAvgDays"></canvas></div>
+          <div class="chart-title">Current Open Backlog — Aging</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:-8px;margin-bottom:10px">How long current open jobs have been waiting since "Full Info Received". Watch the right side — anything &gt;30 days is getting stale.</div>
+          <div style="position:relative;height:200px"><canvas id="cBacklog"></canvas></div>
         </div>
       </div>
     </div>
@@ -374,8 +396,9 @@ th.sortable.sort-desc::after{border-top-color:#1a1a18;margin-top:-2px;opacity:1}
     <div id="sec-staff" class="section">
       <div class="charts-row">
         <div class="chart-card full">
-          <div class="chart-title">Jobs Executed by Staff</div>
-          <div style="position:relative;height:220px"><canvas id="cExecutor"></canvas></div>
+          <div class="chart-title">Staff Workload &amp; Quality — bars are counts, line is deadline-miss %</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:-8px;margin-bottom:10px">Each staff's volume (stacked by status) vs their deadline miss rate. Taller bar = more workload; higher line = more missed deadlines.</div>
+          <div style="position:relative;height:280px"><canvas id="cExecutor"></canvas></div>
         </div>
       </div>
       <div class="chart-card" style="margin-bottom:14px">
@@ -401,12 +424,19 @@ th.sortable.sort-desc::after{border-top-color:#1a1a18;margin-top:-2px;opacity:1}
         </div>
       </div>
       <div class="chart-card" style="margin-bottom:14px">
-        <div class="chart-title">Outlet Breakdown</div>
+        <div class="chart-title">Outlet Breakdown — click columns to sort</div>
         <div class="tbl-wrap">
           <table class="summary-tbl">
-            <thead><tr>
-              <th>#</th><th>Outlet Code</th><th>Outlet Name</th>
-              <th>Total</th><th>Completed</th><th>Open</th><th>Cancelled</th><th>Avg Days</th>
+            <thead><tr id="outletThead">
+              <th>#</th>
+              <th class="sortable" data-sort="code">Outlet Code</th>
+              <th class="sortable" data-sort="name">Outlet Name</th>
+              <th class="sortable" data-sort="requester">Top Requestor</th>
+              <th class="sortable" data-sort="total">Total</th>
+              <th class="sortable" data-sort="completed">Completed</th>
+              <th class="sortable" data-sort="open">Open</th>
+              <th class="sortable" data-sort="cancelled">Cancelled</th>
+              <th class="sortable" data-sort="avgDays">Avg Days</th>
             </tr></thead>
             <tbody id="outletTbody"></tbody>
           </table>
@@ -491,19 +521,20 @@ th.sortable.sort-desc::after{border-top-color:#1a1a18;margin-top:-2px;opacity:1}
           placeholder="Search S/N, outlet, purpose, item, requester, detail…"
           oninput="renderJobsTable()">
         <span class="result-count" id="jobCount"></span>
-        <div class="est-legend">
-          <span class="est-legend-title">Est. Date:</span>
-          <span class="est-missed">Missed</span>
-          <span class="est-urgent">≤3 days</span>
-          <span class="est-warning">4–7 days</span>
-          <span class="est-legend-pill est-ok">&gt;7 days</span>
-          <span class="est-legend-pill est-ontime">On time</span>
-          <span class="est-legend-pill est-cancel">Cancelled</span>
+        <div class="est-legend" id="estLegend">
+          <span class="est-legend-title">Filter by Est. Date:</span>
+          <span class="est-chip" data-est="missed"  onclick="toggleEstFilter('missed',this)">Missed <span class="est-chip-count" id="cntMissed">0</span></span>
+          <span class="est-chip" data-est="urgent"  onclick="toggleEstFilter('urgent',this)">≤3 days <span class="est-chip-count" id="cntUrgent">0</span></span>
+          <span class="est-chip" data-est="warning" onclick="toggleEstFilter('warning',this)">4–7 days <span class="est-chip-count" id="cntWarning">0</span></span>
+          <span class="est-chip" data-est="ok"      onclick="toggleEstFilter('ok',this)">&gt;7 days <span class="est-chip-count" id="cntOk">0</span></span>
+          <span class="est-chip" data-est="ontime"  onclick="toggleEstFilter('ontime',this)">On time <span class="est-chip-count" id="cntOntime">0</span></span>
+          <span class="est-chip" data-est="cancel"  onclick="toggleEstFilter('cancel',this)">Cancelled <span class="est-chip-count" id="cntCancel">0</span></span>
         </div>
       </div>
       <div class="tbl-wrap">
         <table class="data-tbl">
           <thead><tr id="jobsThead">
+            <th class="expand-col"></th>
             <th class="sortable" data-sort="sn">S/N</th>
             <th class="sortable" data-sort="status">Status</th>
             <th class="sortable" data-sort="outletCode">Outlet</th>
@@ -894,115 +925,190 @@ function renderKPIs(jobs) {
 }
 
 function renderOverview(jobs) {
-  // Status donut
-  const sCounts = {};
-  jobs.forEach(j => sCounts[j.status] = (sCounts[j.status] || 0) + 1);
-  const sLabels = Object.keys(sCounts);
-  mkChart('cStatus', {
-    type:'doughnut',
+  // ── Monthly Jobs Created (by dateCreated)
+  const createdMap = {};
+  jobs.forEach(j => { const k = ym(j.dateCreated); if (k) createdMap[k] = (createdMap[k]||0)+1; });
+
+  // ── Monthly Jobs Completed (by compDate)
+  const completedMap = {};
+  jobs.filter(j => j.status === 'Completed').forEach(j => {
+    const k = ym(j.compDate); if (k) completedMap[k] = (completedMap[k]||0)+1;
+  });
+
+  // Union of months for x-axis
+  const allMonths = [...new Set([...Object.keys(createdMap), ...Object.keys(completedMap)])].sort();
+  const monthLbls = allMonths.map(k => { const [y,m] = k.split('-'); return `${MON_NAMES[+m-1]} ${y.slice(2)}`; });
+
+  mkChart('cMonthlyCompleted', {
+    type:'bar',
     data:{
-      labels: sLabels,
+      labels: allMonths.map(k => { const [y,m]=k.split('-'); return `${MON_NAMES[+m-1]} ${y.slice(2)}`; }),
+      datasets:[{ label:'Completed', data:allMonths.map(k=>completedMap[k]||0), backgroundColor:'#22c55e', borderRadius:4 }]
+    },
+    options: barOpts(false)
+  });
+
+  mkChart('cMonthly', {
+    type:'bar',
+    data:{
+      labels: allMonths.map(k => { const [y,m]=k.split('-'); return `${MON_NAMES[+m-1]} ${y.slice(2)}`; }),
+      datasets:[{ label:'Created', data:allMonths.map(k=>createdMap[k]||0), backgroundColor:'#378ADD', borderRadius:4 }]
+    },
+    options: barOpts(false)
+  });
+
+  // ── Intake vs Throughput (line, two series)
+  mkChart('cIntakeVsThrough', {
+    type:'line',
+    data:{
+      labels: monthLbls,
+      datasets:[
+        { label:'Created (intake)', data: allMonths.map(k=>createdMap[k]||0),
+          borderColor:'#378ADD', backgroundColor:'rgba(55,138,221,.15)', tension:.3, fill:true, pointRadius:3 },
+        { label:'Completed (throughput)', data: allMonths.map(k=>completedMap[k]||0),
+          borderColor:'#22c55e', backgroundColor:'rgba(34,197,94,.10)', tension:.3, fill:false, pointRadius:3, borderDash:[4,3] }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'bottom', labels:{ font:{size:11}, boxWidth:12 } } },
+      scales:{
+        y:{ beginAtZero:true, ticks:{font:{size:10}}, grid:{color:'#e8e8e4'} },
+        x:{ ticks:{font:{size:10},maxRotation:40}, grid:{display:false} }
+      }
+    }
+  });
+
+  // ── On-Time Completion Rate per month (line %)
+  const onTimePerMonth = {};   // key: YYYY-MM, value: { total, onTime }
+  jobs.filter(j => j.status === 'Completed' && j.compDate).forEach(j => {
+    const k = ym(j.compDate);
+    if (!onTimePerMonth[k]) onTimePerMonth[k] = { total:0, onTime:0 };
+    onTimePerMonth[k].total++;
+    if (j.dateEst && j.compDate <= j.dateEst) onTimePerMonth[k].onTime++;
+  });
+  const otMonths = Object.keys(onTimePerMonth).sort();
+  mkChart('cOnTimeRate', {
+    type:'line',
+    data:{
+      labels: otMonths.map(k => { const [y,m]=k.split('-'); return `${MON_NAMES[+m-1]} ${y.slice(2)}`; }),
       datasets:[{
-        data: sLabels.map(k => sCounts[k]),
-        backgroundColor: sLabels.map(k => STATUS_COLORS[k] || '#94a3b8'),
-        borderWidth:2, borderColor:'#fff'
+        label:'On-Time %',
+        data: otMonths.map(k => +((onTimePerMonth[k].onTime / onTimePerMonth[k].total) * 100).toFixed(1)),
+        borderColor:'#16a34a', backgroundColor:'rgba(34,197,94,.15)', tension:.3, fill:true, pointRadius:4
       }]
     },
     options:{
       responsive:true, maintainAspectRatio:false,
       plugins:{
-        legend:{position:'right',labels:{font:{size:11},padding:10,boxWidth:12}},
-        tooltip:{callbacks:{label:ctx => ` ${ctx.label}: ${ctx.parsed} (${((ctx.parsed/jobs.length)*100).toFixed(0)}%)`}}
+        legend:{ display:false },
+        tooltip:{ callbacks:{ label:ctx => `${ctx.parsed.y}% on time (${onTimePerMonth[otMonths[ctx.dataIndex]].onTime}/${onTimePerMonth[otMonths[ctx.dataIndex]].total} jobs)` } }
+      },
+      scales:{
+        y:{ beginAtZero:true, max:100, ticks:{ font:{size:10}, callback:v => v+'%' }, grid:{color:'#e8e8e4'} },
+        x:{ ticks:{font:{size:10},maxRotation:40}, grid:{display:false} }
       }
     }
   });
 
-  // Monthly trend (bar by date created)
-  const mMap = {};
-  jobs.forEach(j => { const k = ym(j.dateCreated); if (k) mMap[k] = (mMap[k]||0)+1; });
-  const mKeys = Object.keys(mMap).sort();
-  mkChart('cMonthly', {
+  // ── Current Open Backlog Aging (stacked bar by age bucket × status type)
+  const today = getToday();
+  const ageBuckets = [
+    { key:'b_new',    label:'≤7 days (fresh)',    test:d => d <= 7 },
+    { key:'b_8_14',   label:'8–14 days',           test:d => d >= 8  && d <= 14 },
+    { key:'b_15_29',  label:'15–29 days',          test:d => d >= 15 && d <= 29 },
+    { key:'b_30_59',  label:'30–59 days (stale)',  test:d => d >= 30 && d <= 59 },
+    { key:'b_60plus', label:'60+ days (very stale)', test:d => d >= 60 }
+  ];
+  const openJobs = jobs.filter(j => j.status !== 'Completed' && j.status !== 'Cancelled');
+  const dueBuckets = { missed:0, urgent:0, warning:0, ok:0 };
+  const ageCounts = {};
+  ageBuckets.forEach(b => ageCounts[b.key] = { missed:0, urgent:0, warning:0, ok:0 });
+  openJobs.forEach(j => {
+    const infoDate = j.dateInfo || j.dateCreated;
+    if (!infoDate) return;
+    const days = Math.floor((today.getTime() - infoDate.getTime()) / 86400000);
+    const bucket = ageBuckets.find(b => b.test(days));
+    if (!bucket) return;
+    const dueKey = estDateBucket(j, today);
+    const slot = (dueKey === 'missed' || dueKey === 'urgent' || dueKey === 'warning' || dueKey === 'ok') ? dueKey : 'ok';
+    ageCounts[bucket.key][slot]++;
+    dueBuckets[slot]++;
+  });
+  mkChart('cBacklog', {
     type:'bar',
     data:{
-      labels: mKeys.map(k => { const [y,m]=k.split('-'); return `${MON_NAMES[+m-1]} ${y.slice(2)}`; }),
-      datasets:[{ label:'Jobs', data:mKeys.map(k=>mMap[k]), backgroundColor:'#378ADD', borderRadius:4 }]
+      labels: ageBuckets.map(b => b.label),
+      datasets:[
+        { label:'Missed deadline',        data: ageBuckets.map(b => ageCounts[b.key].missed),  backgroundColor:'#ef4444', stack:'s', borderRadius:2 },
+        { label:'≤3 days to deadline',    data: ageBuckets.map(b => ageCounts[b.key].urgent),  backgroundColor:'#f97316', stack:'s', borderRadius:2 },
+        { label:'4–7 days to deadline',   data: ageBuckets.map(b => ageCounts[b.key].warning), backgroundColor:'#f59e0b', stack:'s', borderRadius:2 },
+        { label:'>7 days to deadline',    data: ageBuckets.map(b => ageCounts[b.key].ok),      backgroundColor:'#22c55e', stack:'s', borderRadius:2 }
+      ]
     },
-    options: barOpts(false)
-  });
-
-  // Purpose horizontal bar
-  const pMap = {};
-  jobs.forEach(j => pMap[j.purpose] = (pMap[j.purpose]||0)+1);
-  const pSorted = Object.entries(pMap).sort((a,b)=>b[1]-a[1]).slice(0,12);
-  mkChart('cPurpose', {
-    type:'bar',
-    data:{
-      labels: pSorted.map(([k])=>k),
-      datasets:[{ label:'Jobs', data:pSorted.map(([,v])=>v), backgroundColor:'#8b5cf6', borderRadius:3 }]
-    },
-    options: { ...barOpts(true), plugins:{ legend:{ display:false } } }
-  });
-
-  // Item type horizontal bar
-  const iMap = {};
-  jobs.forEach(j => { if (j.item) iMap[j.item] = (iMap[j.item]||0)+1; });
-  const iSorted = Object.entries(iMap).sort((a,b)=>b[1]-a[1]).slice(0,12);
-  mkChart('cItems', {
-    type:'bar',
-    data:{
-      labels: iSorted.map(([k])=>k),
-      datasets:[{ label:'Jobs', data:iSorted.map(([,v])=>v), backgroundColor:'#f59e0b', borderRadius:3 }]
-    },
-    options: { ...barOpts(true), plugins:{ legend:{ display:false } } }
-  });
-
-  // Avg days to complete by purpose
-  const daysByP = {};
-  jobs.filter(j => j.daysTaken !== null && j.status === 'Completed').forEach(j => {
-    if (!daysByP[j.purpose]) daysByP[j.purpose] = [];
-    daysByP[j.purpose].push(j.daysTaken);
-  });
-  const avgP = Object.entries(daysByP)
-    .map(([k,v]) => [k, avg(v)])
-    .filter(([,v]) => v !== null)
-    .sort((a,b) => b[1]-a[1]).slice(0,14);
-  mkChart('cAvgDays', {
-    type:'bar',
-    data:{
-      labels: avgP.map(([k])=>k),
-      datasets:[{ label:'Avg Days', data:avgP.map(([,v])=>+v.toFixed(1)), backgroundColor:'#10b981', borderRadius:4 }]
-    },
-    options: barOpts(false)
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'bottom', labels:{ font:{size:11}, boxWidth:12 } } },
+      scales:{
+        y:{ beginAtZero:true, stacked:true, ticks:{font:{size:10}}, grid:{color:'#e8e8e4'} },
+        x:{ stacked:true, ticks:{font:{size:11}}, grid:{display:false} }
+      }
+    }
   });
 }
 
 function renderStaff(jobs) {
-  const exc = {};
-  jobs.forEach(j => {
-    exc[j.executor] = (exc[j.executor] || 0) + 1;
-  });
-
-  const excSorted = Object.entries(exc).sort((a,b)=>b[1]-a[1]);
-  mkChart('cExecutor', {
-    type:'bar',
-    data:{
-      labels: excSorted.map(([k])=>k),
-      datasets:[{ label:'Jobs Executed', data:excSorted.map(([,v])=>v), backgroundColor:'#8b5cf6', borderRadius:6 }]
-    },
-    options: barOpts(false)
-  });
-
-  // Staff performance table
+  // Staff performance: aggregate per executor
   const staffMap = {};
   jobs.forEach(j => {
     const k = j.executor;
-    if (!staffMap[k]) staffMap[k] = { total:0, completed:0, cancelled:0, open:0, days:[] };
+    if (!staffMap[k]) staffMap[k] = { total:0, completed:0, cancelled:0, open:0, days:[], missed:0 };
     staffMap[k].total++;
     if (j.status === 'Completed') {
       staffMap[k].completed++;
       if (j.daysTaken !== null) staffMap[k].days.push(j.daysTaken);
+      if (j.compDate && j.dateEst && j.compDate > j.dateEst) staffMap[k].missed++;
     } else if (j.status === 'Cancelled') staffMap[k].cancelled++;
     else staffMap[k].open++;
+  });
+
+  // Sort staff by total desc
+  const staffSorted = Object.entries(staffMap).sort((a,b)=>b[1].total - a[1].total);
+  const staffLabels = staffSorted.map(([k])=>k);
+
+  // Bars stacked: Completed (green), Open (blue), Cancelled (grey)
+  // Line: miss % of completed jobs
+  mkChart('cExecutor', {
+    type:'bar',
+    data:{
+      labels: staffLabels,
+      datasets:[
+        { type:'bar', label:'Completed', stack:'s', backgroundColor:'#22c55e', data: staffSorted.map(([,d]) => d.completed), order:2, borderRadius:2, yAxisID:'y' },
+        { type:'bar', label:'Open',      stack:'s', backgroundColor:'#3b82f6', data: staffSorted.map(([,d]) => d.open),      order:2, borderRadius:2, yAxisID:'y' },
+        { type:'bar', label:'Cancelled', stack:'s', backgroundColor:'#94a3b8', data: staffSorted.map(([,d]) => d.cancelled), order:2, borderRadius:2, yAxisID:'y' },
+        { type:'line', label:'Deadline Miss %',
+          data: staffSorted.map(([,d]) => d.completed > 0 ? +((d.missed/d.completed)*100).toFixed(1) : 0),
+          borderColor:'#dc2626', backgroundColor:'#dc2626', tension:.3, pointRadius:4, pointHoverRadius:6,
+          fill:false, order:1, yAxisID:'y1' }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{ position:'bottom', labels:{ font:{size:11}, boxWidth:12 } },
+        tooltip:{ callbacks:{
+          label: ctx => {
+            if (ctx.dataset.label === 'Deadline Miss %') return `  ${ctx.dataset.label}: ${ctx.parsed.y}%`;
+            return `  ${ctx.dataset.label}: ${ctx.parsed.y}`;
+          }
+        }}
+      },
+      scales:{
+        y:{  beginAtZero:true, stacked:true, position:'left', title:{display:true,text:'Job count',font:{size:10}}, ticks:{font:{size:10}}, grid:{color:'#e8e8e4'} },
+        y1:{ beginAtZero:true, max:100, position:'right', title:{display:true,text:'Miss %',font:{size:10}}, ticks:{font:{size:10},callback:v=>v+'%'}, grid:{display:false} },
+        x:{  stacked:true, ticks:{font:{size:11}}, grid:{display:false} }
+      }
+    }
   });
 
   const maxTotal = Math.max(...Object.values(staffMap).map(d=>d.total), 1);
@@ -1022,30 +1128,97 @@ function renderStaff(jobs) {
   }).join('');
 }
 
+// Outlet sort state
+let _outletSortCol = 'total';
+let _outletSortDir = 'desc';
+let _outletRows = [];
+
+function sortOutletBy(col) {
+  if (_outletSortCol === col) _outletSortDir = _outletSortDir === 'asc' ? 'desc' : 'asc';
+  else {
+    _outletSortCol = col;
+    _outletSortDir = (col === 'total' || col === 'completed' || col === 'open' || col === 'cancelled' || col === 'avgDays') ? 'desc' : 'asc';
+  }
+  renderOutletTable();
+}
+
+function renderOutletTable() {
+  const dir = _outletSortDir === 'asc' ? 1 : -1;
+  const col = _outletSortCol;
+  const sortVal = r => {
+    switch(col) {
+      case 'avgDays':   return r.avgDays == null ? -Infinity : r.avgDays;
+      case 'total':
+      case 'completed':
+      case 'open':
+      case 'cancelled': return r[col];
+      default:          return (r[col] || '').toString().toLowerCase();
+    }
+  };
+  const sorted = [..._outletRows].sort((a,b) => {
+    const va = sortVal(a), vb = sortVal(b);
+    if (va < vb) return -1 * dir;
+    if (va > vb) return  1 * dir;
+    return 0;
+  });
+  // Update header indicators
+  document.querySelectorAll('#outletThead th').forEach(th => {
+    th.classList.remove('sort-asc','sort-desc');
+    if (th.dataset.sort === col) th.classList.add(dir === 1 ? 'sort-asc' : 'sort-desc');
+  });
+  document.getElementById('outletTbody').innerHTML = sorted.map((r, i) => `<tr>
+    <td class="sn-cell">${i+1}</td>
+    <td><strong>${r.code}</strong></td>
+    <td style="font-size:11px">${r.name || ''}</td>
+    <td style="font-size:11px"><strong>${r.requester || '—'}</strong>${r.requesterCount ? ` <span style="color:var(--muted)">(${r.requesterCount})</span>` : ''}</td>
+    <td><strong>${r.total}</strong></td>
+    <td><span class="badge b-completed">${r.completed}</span></td>
+    <td>${r.open ? `<span class="badge b-inprogress">${r.open}</span>` : '—'}</td>
+    <td>${r.cancelled ? `<span class="badge b-cancelled">${r.cancelled}</span>` : '—'}</td>
+    <td>${r.avgDays != null ? r.avgDays.toFixed(1)+' d' : '—'}</td>
+  </tr>`).join('');
+}
+
 function renderOutlet(jobs) {
   const outMap = {};
   jobs.forEach(j => {
     const k = j.outletCode || '(none)';
-    if (!outMap[k]) outMap[k] = { name:j.outletName, total:0, completed:0, open:0, cancelled:0, days:[] };
+    if (!outMap[k]) outMap[k] = { code:k, name:j.outletName, total:0, completed:0, open:0, cancelled:0, days:[], requesters:{} };
     outMap[k].total++;
     if (j.status === 'Completed') {
       outMap[k].completed++;
       if (j.daysTaken !== null) outMap[k].days.push(j.daysTaken);
     } else if (j.status === 'Cancelled') outMap[k].cancelled++;
     else outMap[k].open++;
+    if (j.requester) outMap[k].requesters[j.requester] = (outMap[k].requesters[j.requester] || 0) + 1;
   });
 
-  const sorted = Object.entries(outMap).sort((a,b)=>b[1].total-a[1].total);
-  const top = sorted.slice(0, 20);
+  // Compute derived fields for each outlet (top requester, avg days)
+  _outletRows = Object.values(outMap).map(d => {
+    const top = Object.entries(d.requesters).sort((a,b) => b[1]-a[1])[0];
+    return {
+      code:       d.code,
+      name:       d.name,
+      total:      d.total,
+      completed:  d.completed,
+      open:       d.open,
+      cancelled:  d.cancelled,
+      avgDays:    avg(d.days.filter(x => x >= 0 && x <= 500)),
+      requester:  top ? top[0] : '',
+      requesterCount: top ? top[1] : 0
+    };
+  });
 
+  // Stacked chart (top 20 by total, descending)
+  const chartRows = [..._outletRows].sort((a,b) => b.total - a.total).slice(0, 20);
   mkChart('cOutlet', {
     type:'bar',
     data:{
-      labels: top.map(([k])=>k),
+      labels: chartRows.map(r => r.code),
       datasets:[
-        { label:'Completed',  data:top.map(([,d])=>d.completed),  backgroundColor:'#22c55e', stack:'s', borderRadius:2 },
-        { label:'Open',       data:top.map(([,d])=>d.open),       backgroundColor:'#3b82f6', stack:'s', borderRadius:2 },
-        { label:'Cancelled',  data:top.map(([,d])=>d.cancelled),  backgroundColor:'#ef4444', stack:'s', borderRadius:2 },
+        { label:'Completed',  data:chartRows.map(r => r.completed),  backgroundColor:'#22c55e', stack:'s', borderRadius:2 },
+        { label:'Open',       data:chartRows.map(r => r.open),       backgroundColor:'#3b82f6', stack:'s', borderRadius:2 },
+        { label:'Cancelled',  data:chartRows.map(r => r.cancelled),  backgroundColor:'#ef4444', stack:'s', borderRadius:2 },
       ]
     },
     options:{
@@ -1058,19 +1231,7 @@ function renderOutlet(jobs) {
     }
   });
 
-  document.getElementById('outletTbody').innerHTML = sorted.map(([code, d], i) => {
-    const a = avg(d.days);
-    return `<tr>
-      <td class="sn-cell">${i+1}</td>
-      <td><strong>${code}</strong></td>
-      <td style="font-size:11px">${d.name || ''}</td>
-      <td><strong>${d.total}</strong></td>
-      <td><span class="badge b-completed">${d.completed}</span></td>
-      <td>${d.open ? `<span class="badge b-inprogress">${d.open}</span>` : '—'}</td>
-      <td>${d.cancelled ? `<span class="badge b-cancelled">${d.cancelled}</span>` : '—'}</td>
-      <td>${a !== null ? a.toFixed(1)+' d' : '—'}</td>
-    </tr>`;
-  }).join('');
+  renderOutletTable();
 }
 
 function renderRequestor(jobs) {
@@ -1094,6 +1255,32 @@ function renderRequestor(jobs) {
   const sorted = Object.entries(reqMap).sort((a,b) => b[1].total - a[1].total);
   const top = sorted.slice(0, 20);
 
+  // Plugin: draw % label above each stacked bar (share of grand total)
+  const grandTotal = jobs.length;
+  const pctLabelPlugin = {
+    id: 'pctLabel',
+    afterDatasetsDraw(chart) {
+      const { ctx, data, scales: { x, y } } = chart;
+      if (!data.labels || !data.datasets.length) return;
+      const totals = data.labels.map((_, i) =>
+        data.datasets.reduce((s, ds) => s + (Number(ds.data[i]) || 0), 0)
+      );
+      ctx.save();
+      ctx.fillStyle = '#1a1a18';
+      ctx.font = 'bold 10px -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      totals.forEach((t, i) => {
+        if (t === 0) return;
+        const pct = (t / grandTotal * 100).toFixed(1) + '%';
+        const xPos = x.getPixelForValue(i);
+        const yPos = y.getPixelForValue(t) - 4;
+        ctx.fillText(pct, xPos, yPos);
+      });
+      ctx.restore();
+    }
+  };
+
   // ── Stacked bar by status ──
   mkChart('cRequestor', {
     type:'bar',
@@ -1107,12 +1294,21 @@ function renderRequestor(jobs) {
     },
     options:{
       responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ labels:{ font:{size:11}, boxWidth:12 } } },
+      layout:{ padding:{ top: 18 } },
+      plugins:{
+        legend:{ labels:{ font:{size:11}, boxWidth:12 } },
+        tooltip:{ callbacks:{ afterBody: ctx => {
+          const i = ctx[0].dataIndex;
+          const total = top[i][1].total;
+          return `Share of all jobs: ${(total/grandTotal*100).toFixed(1)}%`;
+        }}}
+      },
       scales:{
         y:{ beginAtZero:true, stacked:true, ticks:{font:{size:10}}, grid:{color:'#e8e8e4'} },
         x:{ stacked:true, ticks:{font:{size:10},maxRotation:45}, grid:{display:false} }
       }
-    }
+    },
+    plugins:[pctLabelPlugin]
   });
 
   // ── Purpose mix (top 10 requestors) — stacked bar ──
@@ -1144,9 +1340,13 @@ function renderRequestor(jobs) {
     }
   });
 
-  // ── Avg days per requestor (only those with completed jobs) ──
+  // ── Avg days per requestor — exclude outliers (<0 or >500) from avg but still count jobs ──
+  const SANE_MIN = 0, SANE_MAX = 500;
   const avgData = sorted
-    .map(([k, d]) => [k, avg(d.days)])
+    .map(([k, d]) => {
+      const sane = d.days.filter(x => x >= SANE_MIN && x <= SANE_MAX);
+      return [k, sane.length ? avg(sane) : null, d.days.length - sane.length];
+    })
     .filter(([, v]) => v !== null)
     .sort((a,b) => b[1]-a[1])
     .slice(0, 15);
@@ -1156,12 +1356,26 @@ function renderRequestor(jobs) {
       labels: avgData.map(([k]) => k),
       datasets:[{ label:'Avg Days', data: avgData.map(([,v]) => +v.toFixed(1)), backgroundColor:'#0d6e6e', borderRadius:4 }]
     },
-    options: barOpts(false)
+    options: {
+      ...barOpts(false),
+      plugins:{
+        legend:{ display:false },
+        tooltip:{ callbacks:{
+          label: ctx => `Avg: ${ctx.parsed.y} days`,
+          afterLabel: ctx => {
+            const excluded = avgData[ctx.dataIndex][2];
+            return excluded > 0 ? `(${excluded} outlier value${excluded > 1 ? 's' : ''} excluded)` : '';
+          }
+        }}
+      }
+    }
   });
 
-  // ── Breakdown table ──
+  // ── Breakdown table — also filter outliers from the table's avg days ──
   document.getElementById('requestorTbody').innerHTML = sorted.map(([name, d], i) => {
-    const a = avg(d.days);
+    const saneDays = d.days.filter(x => x >= 0 && x <= 500);
+    const excludedCount = d.days.length - saneDays.length;
+    const a = saneDays.length ? avg(saneDays) : null;
     const topOutlet = Object.entries(d.outletCounts).sort((a,b) => b[1]-a[1])[0];
     const missPct = d.completed > 0 ? ((d.missed / d.completed) * 100).toFixed(0) : '—';
     return `<tr>
@@ -1171,7 +1385,7 @@ function renderRequestor(jobs) {
       <td><span class="badge b-completed">${d.completed}</span></td>
       <td>${d.open ? `<span class="badge b-inprogress">${d.open}</span>` : '—'}</td>
       <td>${d.cancelled ? `<span class="badge b-cancelled">${d.cancelled}</span>` : '—'}</td>
-      <td>${a !== null ? a.toFixed(1) + ' d' : '—'}</td>
+      <td>${a !== null ? a.toFixed(1) + ' d' : '—'}${excludedCount > 0 ? ` <span title="${excludedCount} outlier value(s) excluded" style="font-size:10px;color:var(--muted)">*</span>` : ''}</td>
       <td>${d.missed > 0 ? `<span class="badge b-cancelled">${d.missed} (${missPct}%)</span>` : '—'}</td>
       <td style="font-size:11px">${topOutlet ? `${topOutlet[0]} <span style="color:var(--muted)">(${topOutlet[1]})</span>` : '—'}</td>
     </tr>`;
@@ -1205,26 +1419,50 @@ function sortJobsBy(col) {
   renderJobsTable();
 }
 
-function estDateClass(j, today) {
-  if (!j.dateEst) return 'est-ok';
-  if (j.status === 'Cancelled') return 'est-cancel';
+function estDateBucket(j, today) {
+  if (!j.dateEst) return 'ok';
+  if (j.status === 'Cancelled') return 'cancel';
   if (j.status === 'Completed') {
-    if (j.compDate && j.compDate > j.dateEst) return 'est-missed';
-    return 'est-ontime';
+    if (j.compDate && j.compDate > j.dateEst) return 'missed';
+    return 'ontime';
   }
-  // Ongoing
   const diff = Math.floor((j.dateEst.getTime() - today.getTime()) / 86400000);
-  if (diff < 0)  return 'est-missed';
-  if (diff <= 3) return 'est-urgent';
-  if (diff <= 7) return 'est-warning';
-  return 'est-ok';
+  if (diff < 0)  return 'missed';
+  if (diff <= 3) return 'urgent';
+  if (diff <= 7) return 'warning';
+  return 'ok';
+}
+function estDateClass(j, today) { return 'est-' + estDateBucket(j, today); }
+
+// Est-Date filter chips state
+let _estFilters = new Set();   // empty = no filter active
+function toggleEstFilter(key, el) {
+  if (_estFilters.has(key)) _estFilters.delete(key);
+  else _estFilters.add(key);
+  el.classList.toggle('active', _estFilters.has(key));
+  // dim non-active chips when at least one is active
+  document.querySelectorAll('#estLegend .est-chip').forEach(c => {
+    if (_estFilters.size === 0) c.classList.remove('dim');
+    else c.classList.toggle('dim', !_estFilters.has(c.dataset.est));
+  });
+  renderJobsTable();
 }
 
 function renderJobsTable() {
   const jobs = getFiltered();
   const today = getToday();
+
+  // Compute counts per est-date bucket (always — based on currently filtered set)
+  const counts = { missed:0, urgent:0, warning:0, ok:0, ontime:0, cancel:0 };
+  jobs.forEach(j => { counts[estDateBucket(j, today)]++; });
+  document.getElementById('cntMissed').textContent  = counts.missed;
+  document.getElementById('cntUrgent').textContent  = counts.urgent;
+  document.getElementById('cntWarning').textContent = counts.warning;
+  document.getElementById('cntOk').textContent      = counts.ok;
+  document.getElementById('cntOntime').textContent  = counts.ontime;
+  document.getElementById('cntCancel').textContent  = counts.cancel;
   const q = (document.getElementById('jobSearch')?.value || '').toLowerCase().trim();
-  const filtered = q ? jobs.filter(j =>
+  let filtered = q ? jobs.filter(j =>
     j.sn.includes(q) ||
     j.outletCode.toLowerCase().includes(q) ||
     j.outletName.toLowerCase().includes(q) ||
@@ -1235,6 +1473,11 @@ function renderJobsTable() {
     j.detail.toLowerCase().includes(q) ||
     j.status.toLowerCase().includes(q)
   ) : jobs;
+
+  // Apply est-date chip filter (if any chips active)
+  if (_estFilters.size > 0) {
+    filtered = filtered.filter(j => _estFilters.has(estDateBucket(j, today)));
+  }
 
   // Sort
   const dir = _jobSortDir === 'asc' ? 1 : -1;
@@ -1255,7 +1498,12 @@ function renderJobsTable() {
 
   document.getElementById('jobCount').textContent = `${filtered.length} of ${jobs.length} jobs`;
 
-  document.getElementById('jobsTbody').innerHTML = filtered.map(j => `<tr>
+  const esc = s => (s == null ? '' : String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])));
+
+  document.getElementById('jobsTbody').innerHTML = filtered.map((j, idx) => {
+    const hasDetail = (j.detail && j.detail.trim()) || (j.dimension && j.dimension.trim()) || (j.qty && j.qty.trim());
+    return `<tr>
+    <td class="expand-col">${hasDetail ? `<button class="expand-btn" onclick="toggleJobDetail(${idx})" title="Show details">▶</button>` : '<span style="color:#cbd5e1;font-size:10px">–</span>'}</td>
     <td class="sn-cell">${j.sn}</td>
     <td>${badge(j.status)}</td>
     <td>
@@ -1272,7 +1520,25 @@ function renderJobsTable() {
     <td style="font-size:11px;white-space:nowrap">${j.print || '—'}</td>
     <td>${j.executor}</td>
     <td>${j.requester}</td>
-  </tr>`).join('') || `<tr><td colspan="13" class="empty">No jobs match the current filters.</td></tr>`;
+  </tr>
+  <tr class="detail-row" id="jobDetailRow-${idx}">
+    <td colspan="14">
+      <div class="detail-block">
+        <div class="detail-field" style="flex:2;min-width:300px"><span class="lbl">Job Detail</span><div class="val ${j.detail ? '' : 'empty'}">${j.detail ? esc(j.detail) : '— (no detail)'}</div></div>
+        <div class="detail-field"><span class="lbl">Dimension</span><div class="val ${j.dimension ? '' : 'empty'}">${j.dimension ? esc(j.dimension) : '—'}</div></div>
+        <div class="detail-field"><span class="lbl">Quantity</span><div class="val ${j.qty ? '' : 'empty'}">${j.qty ? esc(j.qty) : '—'}</div></div>
+      </div>
+    </td>
+  </tr>`;
+  }).join('') || `<tr><td colspan="14" class="empty">No jobs match the current filters.</td></tr>`;
+}
+
+function toggleJobDetail(idx) {
+  const row = document.getElementById('jobDetailRow-' + idx);
+  if (!row) return;
+  const btn = document.querySelector(`[onclick="toggleJobDetail(${idx})"]`);
+  const isOpen = row.classList.toggle('open');
+  if (btn) btn.classList.toggle('open', isOpen);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1506,10 +1772,12 @@ async function refreshData() {
   }
 }
 
-// Wire up Jobs-List sortable headers once
+// Wire up sortable headers once
 document.addEventListener('click', (e) => {
-  const th = e.target.closest('#jobsThead th.sortable');
-  if (th && th.dataset.sort) sortJobsBy(th.dataset.sort);
+  const jobsTh = e.target.closest('#jobsThead th.sortable');
+  if (jobsTh && jobsTh.dataset.sort) { sortJobsBy(jobsTh.dataset.sort); return; }
+  const outletTh = e.target.closest('#outletThead th.sortable');
+  if (outletTh && outletTh.dataset.sort) { sortOutletBy(outletTh.dataset.sort); return; }
 });
 
 // ── Boot ──
