@@ -198,6 +198,26 @@
   .pl-kpi-val  { font-size:24px; font-weight:800; color:var(--pkc,var(--text)); margin:5px 0 3px; line-height:1; }
   .pl-kpi-sub  { font-size:11px; color:var(--muted); }
   .pl-sub-pct  { display:block; font-size:9px; color:#9ca3af; margin-top:1px; }
+  /* ── Outlet P&L Tab ──────────────────────────────────────── */
+  .opl-tbl { width:100%; border-collapse:collapse; font-size:11px; }
+  .opl-th  { padding:7px 10px; text-align:right; white-space:nowrap; background:var(--card2);
+             border-bottom:2px solid var(--border); font-size:10px; font-weight:600; color:var(--muted); }
+  .opl-th-label { text-align:left; position:sticky; left:0; z-index:3; min-width:72px; }
+  .opl-td  { padding:5px 10px; text-align:right; border-bottom:1px solid var(--border); white-space:nowrap; vertical-align:top; }
+  .opl-td-sticky { position:sticky; left:0; background:var(--card); z-index:1; text-align:left; }
+  .opl-tbl tbody tr:hover .opl-td { filter:brightness(.97); }
+  .opl-outlet-code { font-weight:700; font-size:11px; color:var(--text); }
+  .opl-brand { font-size:10px; color:var(--muted); text-align:left; min-width:120px; max-width:150px; overflow:hidden; text-overflow:ellipsis; }
+  .opl-meta  { font-size:10px; color:var(--muted); }
+  .opl-rev-val  { color:#1a6fd8; font-weight:600; }
+  .opl-cost-val { color:#6b7280; }
+  .opl-net-pos  { color:#16a163; font-weight:700; }
+  .opl-net-neg  { color:#ef4444; font-weight:700; }
+  .opl-pct-cell { font-size:9px; display:block; color:#9ca3af; margin-top:1px; }
+  .opl-total-row td { font-weight:700; background:rgba(99,102,241,.06) !important;
+                      border-top:2px solid var(--border); border-bottom:2px solid var(--border); }
+  .opl-gp-col td { background:rgba(22,161,99,.05); }
+  .opl-net-col  { background:rgba(22,161,99,.08) !important; }
 </style>
 </head>
 <body>
@@ -336,6 +356,7 @@
   <button class="tab-btn active" onclick="showTab('dashboard',this)">&#128202; Dashboard</button>
   <button class="tab-btn" onclick="showTab('daily',this)">&#128197; Daily &mdash; By Month</button>
   <button class="tab-btn" onclick="showTab('pl',this)">&#128200; Monthly P&amp;L</button>
+  <button class="tab-btn" onclick="showTab('outlet-pl',this)">&#127978; Outlet P&amp;L</button>
 </div>
 
 <!-- ══ TAB: DASHBOARD ══════════════════════════════════════════ -->
@@ -423,6 +444,23 @@
   </div>
 
 </div><!-- /tab-pl -->
+
+<!-- ══ TAB: OUTLET P&L ══════════════════════════════════════ -->
+<div id="tab-outlet-pl" class="main" style="display:none">
+
+  <div class="kpi-grid" id="opl-kpi-grid"></div>
+
+  <div class="chart-card" style="margin-bottom:20px">
+    <h3>Top 20 Outlets — Revenue vs Total Cost</h3>
+    <div id="opl-chart-wrap" style="position:relative;height:340px"><canvas id="opl-chart"></canvas></div>
+  </div>
+
+  <div class="table-section">
+    <h3>Outlet P&amp;L Summary</h3>
+    <div class="tbl-wrap" id="opl-table"></div>
+  </div>
+
+</div><!-- /tab-outlet-pl -->
 
 </div><!-- /content -->
 </div><!-- /page -->
@@ -10473,11 +10511,13 @@ function parseSortVal(text) {
 function showTab(id, btn) {
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  document.getElementById('tab-dashboard').style.display = id==='dashboard' ? '' : 'none';
-  document.getElementById('tab-daily').style.display     = id==='daily'     ? '' : 'none';
-  document.getElementById('tab-pl').style.display        = id==='pl'        ? '' : 'none';
-  if (id==='daily') renderDailyTable();
-  if (id==='pl')    renderPLTab();
+  document.getElementById('tab-dashboard').style.display  = id==='dashboard'  ? '' : 'none';
+  document.getElementById('tab-daily').style.display      = id==='daily'      ? '' : 'none';
+  document.getElementById('tab-pl').style.display         = id==='pl'         ? '' : 'none';
+  document.getElementById('tab-outlet-pl').style.display  = id==='outlet-pl'  ? '' : 'none';
+  if (id==='daily')     renderDailyTable();
+  if (id==='pl')        renderPLTab();
+  if (id==='outlet-pl') renderOutletPLTab();
 }
 
 // ── POPULATE FILTERS ──────────────────────────────────────────────────────────
@@ -10786,8 +10826,9 @@ function render(){
 
 function applyFilters(){
   render();
-  if (document.getElementById('tab-daily').style.display !== 'none') renderDailyTable();
-  if (document.getElementById('tab-pl').style.display    !== 'none') renderPLTab();
+  if (document.getElementById('tab-daily').style.display     !== 'none') renderDailyTable();
+  if (document.getElementById('tab-pl').style.display        !== 'none') renderPLTab();
+  if (document.getElementById('tab-outlet-pl').style.display !== 'none') renderOutletPLTab();
 }
 
 function resetFilters(){
@@ -11656,6 +11697,209 @@ function renderPLTab() {
       });
     }
   }
+}
+
+// ── OUTLET P&L TAB ────────────────────────────────────────────────────────────
+function renderOutletPLTab() {
+  if (!BWPL_LOADED) {
+    document.getElementById('opl-kpi-grid').innerHTML = '<p style="padding:12px;color:var(--muted);font-size:12px">⏳ Loading CY Branwood data…</p>';
+    if (BWPL_LOADING) { setTimeout(()=>renderOutletPLTab(), 400); }
+    else { fetchBWPLData().then(()=>renderOutletPLTab()).catch(e=>{
+      document.getElementById('opl-kpi-grid').innerHTML=`<p style="padding:12px;color:#ef4444;font-size:12px">Failed: ${e.message}</p>`;
+    }); }
+    return;
+  }
+
+  // ── Same filter logic as renderPLTab ──────────────────────────────────────
+  const selYears  = new Set(getSel('fYear').map(Number));
+  const selMonths = new Set(getSel('fMonth'));
+  const selOutlets= new Set(getSel('fOutlet'));
+  const selBrands = new Set(getSel('fBrand'));
+  const selMgr    = new Set(getSel('fManager'));
+  const selFC     = new Set(getSel('fFC'));
+  const BWPL_KNOWN_OUTLETS    = new Set(Object.keys(BWPL_OUTLET_META));
+  const SIDEBAR_KNOWN_OUTLETS = new Set(Array.from(document.querySelectorAll('#fOutlet input')).map(cb=>cb.value));
+  const SIDEBAR_KNOWN_BRANDS  = new Set(Array.from(document.querySelectorAll('#fBrand input')).map(cb=>cb.value));
+  const SIDEBAR_KNOWN_MGRS    = new Set(Array.from(document.querySelectorAll('#fManager input')).map(cb=>cb.value));
+  const SIDEBAR_KNOWN_FC      = new Set(Array.from(document.querySelectorAll('#fFC input')).map(cb=>cb.value));
+  const outletFilterActive = selOutlets.size||selBrands.size||selMgr.size||selFC.size;
+  const allowedBWPLOutlets = new Set();
+  for (const [code,meta] of Object.entries(BWPL_OUTLET_META)) {
+    if (selOutlets.size && SIDEBAR_KNOWN_OUTLETS.has(code)       && !selOutlets.has(code))          continue;
+    if (selBrands.size  && meta.brand && SIDEBAR_KNOWN_BRANDS.has(meta.brand) && !selBrands.has(meta.brand)) continue;
+    if (selMgr.size     && meta.mgr   && SIDEBAR_KNOWN_MGRS.has(meta.mgr)     && !selMgr.has(meta.mgr))     continue;
+    if (selFC.size      && meta.fc    && SIDEBAR_KNOWN_FC.has(meta.fc)         && !selFC.has(meta.fc))       continue;
+    allowedBWPLOutlets.add(code);
+  }
+  const SRC_TO_SUB  = {'CDC':'CDC SALE','FC Counter':'FC SALE','QLUB':'QLUB SALE','FP':'FP SALE','GF':'GF SALE','DVROO':'DVROO SALE','SHOPBACK':'SHOPBACK SALE'};
+  const MAPPED_SUBS = new Set(Object.values(SRC_TO_SUB));
+  const selSrcs     = new Set(getSel('fSource'));
+  const allowedRevSubs = selSrcs.size ? new Set(Object.entries(SRC_TO_SUB).filter(([s])=>selSrcs.has(s)).map(([,v])=>v)) : null;
+  const now   = new Date();
+  const curMk = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+  // ── Aggregate per outlet ──────────────────────────────────────────────────
+  const oData = {};
+  for (const r of BWPL_DATA) {
+    if (r.mk > curMk) continue;
+    const yr = +r.mk.split('-')[0];
+    if (selYears.size  && !selYears.has(yr))    continue;
+    if (selMonths.size && !selMonths.has(r.mk)) continue;
+    if (r.amt <= 0 || !r.outlet) continue;
+    if (outletFilterActive && !allowedBWPLOutlets.has(r.outlet)) continue;
+    if (r.mainCode==='SALES' && allowedRevSubs && MAPPED_SUBS.has(r.subCode) && !allowedRevSubs.has(r.subCode)) continue;
+    if (!oData[r.outlet]) {
+      const m = BWPL_OUTLET_META[r.outlet]||{};
+      oData[r.outlet] = { outlet:r.outlet, brand:m.brand||r.brand||'', mgr:m.mgr||r.mgr||'', fc:m.fc||r.fc||'', rev:0, costByMain:{} };
+    }
+    const od = oData[r.outlet];
+    if (r.mainCode==='SALES') od.rev += r.amt;
+    else od.costByMain[r.mainCode] = (od.costByMain[r.mainCode]||0)+r.amt;
+  }
+
+  // ── Derived per outlet ────────────────────────────────────────────────────
+  const outlets = Object.values(oData).map(od => {
+    const cogs      = od.costByMain['COGS']||0;
+    const grossP    = od.rev - cogs;
+    const totalCost = Object.values(od.costByMain).reduce((a,b)=>a+b,0);
+    const netP      = od.rev - totalCost;
+    return { ...od, cogs, grossP, gpPct:od.rev>0?grossP/od.rev*100:0,
+             totalCost, netP, netMargin:od.rev>0?netP/od.rev*100:0 };
+  }).sort((a,b)=>b.rev-a.rev);
+
+  // Grand totals
+  const tot={rev:0,cogs:0,grossP:0,totalCost:0,netP:0,costByMain:{}};
+  outlets.forEach(o=>{
+    tot.rev+=o.rev; tot.cogs+=o.cogs; tot.grossP+=o.grossP; tot.totalCost+=o.totalCost; tot.netP+=o.netP;
+    Object.entries(o.costByMain).forEach(([k,v])=>{ tot.costByMain[k]=(tot.costByMain[k]||0)+v; });
+  });
+  tot.gpPct=tot.rev>0?tot.grossP/tot.rev*100:0;
+  tot.netMargin=tot.rev>0?tot.netP/tot.rev*100:0;
+
+  const profitable  = outlets.filter(o=>o.netP>=0).length;
+  const lossmaking  = outlets.filter(o=>o.netP<0).length;
+  const bestOutlet  = outlets.length ? outlets.reduce((a,b)=>b.netP>a.netP?b:a) : null;
+
+  // ── KPI Cards ─────────────────────────────────────────────────────────────
+  document.getElementById('opl-kpi-grid').className='pl-kpi-grid';
+  document.getElementById('opl-kpi-grid').innerHTML=`
+    <div class="pl-kpi" style="--pkc:#1a6fd8"><div class="pl-kpi-icon">🏪</div>
+      <div class="pl-kpi-lbl">Active Outlets</div><div class="pl-kpi-val">${outlets.length}</div></div>
+    <div class="pl-kpi" style="--pkc:#16a163"><div class="pl-kpi-icon">✅</div>
+      <div class="pl-kpi-lbl">Profitable</div><div class="pl-kpi-val" style="color:#16a163">${profitable}</div></div>
+    <div class="pl-kpi" style="--pkc:#ef4444"><div class="pl-kpi-icon">⚠️</div>
+      <div class="pl-kpi-lbl">Loss-making</div><div class="pl-kpi-val" style="color:#ef4444">${lossmaking}</div></div>
+    <div class="pl-kpi" style="--pkc:#1a6fd8"><div class="pl-kpi-icon">💰</div>
+      <div class="pl-kpi-lbl">Total Revenue</div><div class="pl-kpi-val">${plFmt(tot.rev)}</div></div>
+    <div class="pl-kpi" style="--pkc:${tot.grossP>=0?'#16a163':'#ef4444'}"><div class="pl-kpi-icon">📦</div>
+      <div class="pl-kpi-lbl">Gross Profit</div><div class="pl-kpi-val">${plFmt(tot.grossP)}</div>
+      <div class="pl-kpi-sub">${tot.gpPct.toFixed(1)}% GP margin</div></div>
+    <div class="pl-kpi" style="--pkc:${tot.netP>=0?'#16a163':'#ef4444'}"><div class="pl-kpi-icon">${tot.netP>=0?'📈':'📉'}</div>
+      <div class="pl-kpi-lbl">Net Profit</div><div class="pl-kpi-val">${plFmt(tot.netP)}</div>
+      <div class="pl-kpi-sub">${tot.netMargin.toFixed(1)}% net margin</div></div>
+    ${bestOutlet?`<div class="pl-kpi" style="--pkc:#8b5cf6"><div class="pl-kpi-icon">🏆</div>
+      <div class="pl-kpi-lbl">Best Outlet</div><div class="pl-kpi-val" style="font-size:18px">${bestOutlet.outlet}</div>
+      <div class="pl-kpi-sub">${plFmt(bestOutlet.netP)} net</div></div>`:''}`;
+
+  // ── Chart: top 20 outlets revenue vs cost ─────────────────────────────────
+  const top20 = outlets.slice(0,20);
+  const _fmtB = v=>v>=1e6?'$'+(v/1e6).toFixed(2)+'M':'$'+(v/1e3).toFixed(1)+'K';
+  const oplLabelPlugin = {
+    id:'oplBarLabels',
+    afterDatasetsDraw(chart){
+      const ctx=chart.ctx;
+      chart.data.datasets.forEach((ds,di)=>{
+        const meta=chart.getDatasetMeta(di);
+        const isCost=ds.label==='Total Cost';
+        meta.data.forEach((bar,j)=>{
+          const v=ds.data[j]; if(!v) return;
+          ctx.save(); ctx.textAlign='center';
+          if(isCost){
+            const rev=top20[j]?.rev||0;
+            ctx.fillStyle='#333'; ctx.font='700 8px sans-serif'; ctx.textBaseline='bottom';
+            ctx.fillText(_fmtB(v),bar.x,bar.y-12);
+            if(rev>0){ ctx.fillStyle='#dc2626'; ctx.font='600 7.5px sans-serif'; ctx.fillText((v/rev*100).toFixed(1)+'%',bar.x,bar.y-2); }
+          } else {
+            ctx.fillStyle='#1a4fa0'; ctx.font='700 8px sans-serif'; ctx.textBaseline='bottom';
+            ctx.fillText(_fmtB(v),bar.x,bar.y-3);
+          }
+          ctx.restore();
+        });
+      });
+    }
+  };
+  const oplCtx=document.getElementById('opl-chart');
+  if(plCharts.opl) plCharts.opl.destroy();
+  if(top20.length && oplCtx){
+    plCharts.opl=new Chart(oplCtx,{
+      type:'bar', plugins:[oplLabelPlugin],
+      data:{ labels:top20.map(o=>o.outlet),
+        datasets:[
+          {label:'Revenue',    data:top20.map(o=>o.rev),       backgroundColor:'rgba(26,111,216,.8)', borderRadius:3},
+          {label:'Total Cost', data:top20.map(o=>o.totalCost), backgroundColor:'rgba(239,68,68,.72)', borderRadius:3}
+        ]},
+      options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:28}},
+        plugins:{legend:{labels:{color:'#777',font:{size:10},boxWidth:12,boxHeight:12}},
+          tooltip:{callbacks:{label:c=>{const lbl=c.dataset.label+': '+plFmtFull(c.raw);
+            return c.dataset.label==='Total Cost'&&top20[c.dataIndex]?.rev>0
+              ?lbl+' ('+(c.raw/top20[c.dataIndex].rev*100).toFixed(1)+'% of rev)':lbl;}}}},
+        scales:{x:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#444',font:{size:10,weight:'600'}}},
+                y:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#999',font:{size:10},callback:v=>plFmt(v)}}}}
+    });
+  }
+
+  // ── Table: one row per outlet ──────────────────────────────────────────────
+  const CC     = BWPL_CC_ORDER.filter(c=>c!=='COGS');
+  const pctSub = (v,base) => base>0?`<span class="opl-pct-cell">${(v/base*100).toFixed(1)}%</span>`:'';
+  const netCls = v => v>=0?'opl-net-pos':'opl-net-neg';
+
+  let h=`<table class="opl-tbl"><thead><tr>
+    <th class="opl-th opl-th-label">Outlet</th>
+    <th class="opl-th" style="text-align:left">Brand</th>
+    <th class="opl-th">Mgr</th>
+    <th class="opl-th">FC</th>
+    <th class="opl-th" style="color:#1a6fd8">Revenue</th>
+    <th class="opl-th">COGS</th>
+    <th class="opl-th" style="color:#16a163">Gross Profit</th>
+    <th class="opl-th">GP%</th>`;
+  CC.forEach(cc=>{ h+=`<th class="opl-th">${BWPL_CC_LABELS[cc]}</th>`; });
+  h+=`<th class="opl-th">Total Exp</th>
+    <th class="opl-th" style="color:#16a163">Net Profit</th>
+    <th class="opl-th">Net%</th></tr></thead><tbody>`;
+
+  outlets.forEach(o=>{
+    h+=`<tr>
+      <td class="opl-td opl-td-sticky opl-outlet-code">${o.outlet}</td>
+      <td class="opl-td opl-brand">${o.brand||'—'}</td>
+      <td class="opl-td opl-meta">${o.mgr||'—'}</td>
+      <td class="opl-td opl-meta">${o.fc||'—'}</td>
+      <td class="opl-td opl-rev-val">${plFmtFull(o.rev)}</td>
+      <td class="opl-td opl-cost-val">${o.cogs>0?plFmtFull(o.cogs)+''+pctSub(o.cogs,o.rev):'—'}</td>
+      <td class="opl-td"><span class="${o.grossP>=0?'pl-profit-pos':'pl-profit-neg'}">${plFmtFull(o.grossP)}</span>${pctSub(o.grossP,o.rev)}</td>
+      <td class="opl-td opl-meta">${o.gpPct.toFixed(1)}%</td>`;
+    CC.forEach(cc=>{ const v=o.costByMain[cc]||0;
+      h+=`<td class="opl-td opl-cost-val">${v>0?plFmtFull(v)+''+pctSub(v,o.rev):'—'}</td>`; });
+    h+=`<td class="opl-td opl-cost-val"><strong>${plFmtFull(o.totalCost)}</strong>${pctSub(o.totalCost,o.rev)}</td>
+      <td class="opl-td opl-net-col"><span class="${netCls(o.netP)}"><strong>${plFmtFull(o.netP)}</strong></span></td>
+      <td class="opl-td opl-meta" style="color:${o.netP>=0?'#16a163':'#ef4444'}">${o.netMargin.toFixed(1)}%</td>
+    </tr>`;
+  });
+
+  // Totals row
+  h+=`<tr class="opl-total-row">
+    <td class="opl-td opl-td-sticky" colspan="4"><strong>TOTAL (${outlets.length} outlets)</strong></td>
+    <td class="opl-td opl-rev-val"><strong>${plFmtFull(tot.rev)}</strong></td>
+    <td class="opl-td opl-cost-val"><strong>${tot.cogs>0?plFmtFull(tot.cogs):'—'}</strong>${pctSub(tot.cogs,tot.rev)}</td>
+    <td class="opl-td"><span class="${tot.grossP>=0?'pl-profit-pos':'pl-profit-neg'}"><strong>${plFmtFull(tot.grossP)}</strong></span>${pctSub(tot.grossP,tot.rev)}</td>
+    <td class="opl-td opl-meta"><strong>${tot.gpPct.toFixed(1)}%</strong></td>`;
+  CC.forEach(cc=>{ const v=tot.costByMain[cc]||0;
+    h+=`<td class="opl-td opl-cost-val"><strong>${v>0?plFmtFull(v):'—'}</strong>${pctSub(v,tot.rev)}</td>`; });
+  h+=`<td class="opl-td opl-cost-val"><strong>${plFmtFull(tot.totalCost)}</strong>${pctSub(tot.totalCost,tot.rev)}</td>
+    <td class="opl-td opl-net-col"><span class="${netCls(tot.netP)}"><strong>${plFmtFull(tot.netP)}</strong></span></td>
+    <td class="opl-td opl-meta" style="color:${tot.netP>=0?'#16a163':'#ef4444'}"><strong>${tot.netMargin.toFixed(1)}%</strong></td>
+  </tr></tbody></table>`;
+
+  document.getElementById('opl-table').innerHTML=h;
 }
 
 fetchBWPLData().catch(err => console.warn('BW P&L prefetch failed:', err));
