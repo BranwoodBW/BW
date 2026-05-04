@@ -55,10 +55,20 @@
   .content { flex:1; min-width:0; }
 
   /* Tabs */
-  .tab-bar { background:var(--card); border-bottom:2px solid var(--border); padding:0 24px; display:flex; }
-  .tab-btn { background:none; border:none; color:var(--muted); font-size:13px; font-weight:600; padding:14px 20px; cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-2px; transition:color .15s; }
+  .tab-bar { background:var(--card); border-bottom:2px solid var(--border); padding:0 24px; display:flex; align-items:center; }
+  .tab-btn { background:none; border:none; color:var(--muted); font-size:13px; font-weight:600; padding:18px 20px 14px; cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-2px; transition:color .15s; position:relative; }
   .tab-btn:hover { color:var(--text); }
   .tab-btn.active { color:var(--accent); border-bottom-color:var(--accent); }
+  /* Data-source indicator stripe at top of each tab */
+  .tab-btn[data-src]::before { content:''; position:absolute; top:0; left:8px; right:8px; height:3px; border-radius:0 0 3px 3px; opacity:.55; transition:opacity .15s; }
+  .tab-btn[data-src]:hover::before, .tab-btn[data-src].active::before { opacity:1; }
+  .tab-btn[data-src="daily"]::before { background:#3b82f6; }
+  .tab-btn[data-src="bwpl"]::before  { background:#f59e0b; }
+  .tab-src-legend { margin-left:auto; display:flex; gap:14px; font-size:10.5px; color:var(--muted); padding-right:8px; }
+  .tab-src-legend span { display:inline-flex; align-items:center; gap:5px; }
+  .tab-src-legend .src-dot { width:10px; height:3px; border-radius:2px; display:inline-block; }
+  .tab-src-legend .src-daily { background:#3b82f6; }
+  .tab-src-legend .src-bwpl  { background:#f59e0b; }
 
   /* Main */
   .main { padding:20px 24px; }
@@ -218,6 +228,31 @@
                       border-top:2px solid var(--border); border-bottom:2px solid var(--border); }
   .opl-gp-col td { background:rgba(22,161,99,.05); }
   .opl-net-col  { background:rgba(22,161,99,.08) !important; }
+  /* ── Source Breakdown Tab (Outlet × Source × Months) ───── */
+  .smt-tbl { width:100%; border-collapse:collapse; font-size:11px; }
+  .smt-th  { padding:7px 10px; text-align:right; white-space:nowrap; background:var(--card2);
+             border-bottom:2px solid var(--border); font-size:10px; font-weight:700; color:var(--muted);
+             position:sticky; top:0; z-index:2; }
+  .smt-th-label { text-align:left; position:sticky; left:0; z-index:5; min-width:170px; background:var(--card2); }
+  .smt-td  { padding:5px 10px; text-align:right; border-bottom:1px solid var(--border); white-space:nowrap; vertical-align:middle; }
+  .smt-td-label { position:sticky; left:0; background:var(--card); z-index:1; text-align:left; }
+  .smt-outlet-row td { font-weight:700; background:rgba(245,158,11,.08) !important;
+                       border-top:2px solid var(--border); border-bottom:1px solid var(--border); }
+  .smt-outlet-row .smt-td-label { background:rgba(245,158,11,.10) !important; }
+  .smt-outlet-code { font-weight:800; font-size:11.5px; color:#b45309; }
+  .smt-outlet-meta { font-size:10px; color:var(--muted); font-weight:500; margin-left:6px; }
+  .smt-src-row td { background:transparent; }
+  .smt-src-row .smt-td-label { padding-left:24px; color:#374151; font-size:10.5px; }
+  .smt-src-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+  .smt-val   { color:#1a6fd8; font-weight:600; }
+  .smt-val-zero { color:#cbd5e1; font-weight:400; }
+  .smt-tot-col { background:rgba(26,111,216,.06) !important; font-weight:700; }
+  .smt-grand-row td { font-weight:800; background:rgba(99,102,241,.10) !important;
+                      border-top:2px solid var(--border); border-bottom:2px solid var(--border); }
+  .smt-mom { display:inline-block; font-size:8.5px; font-weight:600; padding:1px 4px; border-radius:3px; margin-left:5px; }
+  .smt-mom-up   { background:rgba(22,161,99,.12);  color:#16a163; }
+  .smt-mom-dn   { background:rgba(239,68,68,.12);  color:#ef4444; }
+  .smt-cell-pct { font-size:8.5px; color:#94a3b8; display:block; margin-top:1px; }
 </style>
 </head>
 <body>
@@ -353,10 +388,15 @@
 
 <!-- Tab bar -->
 <div class="tab-bar">
-  <button class="tab-btn active" onclick="showTab('dashboard',this)">&#128202; Dashboard</button>
-  <button class="tab-btn" onclick="showTab('daily',this)">&#128197; Daily &mdash; By Month</button>
-  <button class="tab-btn" onclick="showTab('pl',this)">&#128200; Monthly P&amp;L</button>
-  <button class="tab-btn" onclick="showTab('outlet-pl',this)">&#127978; Outlet P&amp;L</button>
+  <button class="tab-btn active" data-src="daily" onclick="showTab('dashboard',this)">&#128202; Dashboard</button>
+  <button class="tab-btn" data-src="daily" onclick="showTab('daily',this)">&#128197; Daily &mdash; By Month</button>
+  <button class="tab-btn" data-src="bwpl"  onclick="showTab('pl',this)">&#128200; Monthly P&amp;L</button>
+  <button class="tab-btn" data-src="bwpl"  onclick="showTab('outlet-pl',this)">&#127978; Outlet P&amp;L</button>
+  <button class="tab-btn" data-src="bwpl"  onclick="showTab('source-trend',this)">&#128225; Source Breakdown</button>
+  <div class="tab-src-legend" title="Data source indicator">
+    <span><i class="src-dot src-daily"></i> Daily Sales</span>
+    <span><i class="src-dot src-bwpl"></i> CY Branwood P&amp;L</span>
+  </div>
 </div>
 
 <!-- ══ TAB: DASHBOARD ══════════════════════════════════════════ -->
@@ -461,6 +501,27 @@
   </div>
 
 </div><!-- /tab-outlet-pl -->
+
+<!-- ══ TAB: SOURCE BREAKDOWN (Outlet × Source × Months) ══════ -->
+<div id="tab-source-trend" class="main" style="display:none">
+
+  <div class="kpi-grid" id="smt-kpi-grid"></div>
+
+  <div class="charts-grid">
+    <div class="chart-card"><h3>Source Revenue Trend &mdash; Monthly</h3>
+      <div style="position:relative;height:300px"><canvas id="smt-trend-chart"></canvas></div></div>
+    <div class="chart-card"><h3>Source Mix &mdash; Total Period</h3>
+      <div style="position:relative;height:300px"><canvas id="smt-mix-chart"></canvas></div></div>
+  </div>
+
+  <div class="table-section">
+    <h3>Outlet &times; Source &times; Months
+      <span style="font-size:11px;color:var(--muted);font-weight:400;">&nbsp;(revenue per source per month, grouped by outlet)</span>
+    </h3>
+    <div class="tbl-wrap" id="smt-table" style="max-height:75vh;overflow:auto"></div>
+  </div>
+
+</div><!-- /tab-source-trend -->
 
 </div><!-- /content -->
 </div><!-- /page -->
@@ -10511,13 +10572,15 @@ function parseSortVal(text) {
 function showTab(id, btn) {
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  document.getElementById('tab-dashboard').style.display  = id==='dashboard'  ? '' : 'none';
-  document.getElementById('tab-daily').style.display      = id==='daily'      ? '' : 'none';
-  document.getElementById('tab-pl').style.display         = id==='pl'         ? '' : 'none';
-  document.getElementById('tab-outlet-pl').style.display  = id==='outlet-pl'  ? '' : 'none';
-  if (id==='daily')     renderDailyTable();
-  if (id==='pl')        renderPLTab();
-  if (id==='outlet-pl') renderOutletPLTab();
+  document.getElementById('tab-dashboard').style.display     = id==='dashboard'    ? '' : 'none';
+  document.getElementById('tab-daily').style.display         = id==='daily'        ? '' : 'none';
+  document.getElementById('tab-pl').style.display            = id==='pl'           ? '' : 'none';
+  document.getElementById('tab-outlet-pl').style.display     = id==='outlet-pl'    ? '' : 'none';
+  document.getElementById('tab-source-trend').style.display  = id==='source-trend' ? '' : 'none';
+  if (id==='daily')        renderDailyTable();
+  if (id==='pl')           renderPLTab();
+  if (id==='outlet-pl')    renderOutletPLTab();
+  if (id==='source-trend') renderSourceTrendTab();
 }
 
 // ── POPULATE FILTERS ──────────────────────────────────────────────────────────
@@ -10826,9 +10889,10 @@ function render(){
 
 function applyFilters(){
   render();
-  if (document.getElementById('tab-daily').style.display     !== 'none') renderDailyTable();
-  if (document.getElementById('tab-pl').style.display        !== 'none') renderPLTab();
-  if (document.getElementById('tab-outlet-pl').style.display !== 'none') renderOutletPLTab();
+  if (document.getElementById('tab-daily').style.display        !== 'none') renderDailyTable();
+  if (document.getElementById('tab-pl').style.display           !== 'none') renderPLTab();
+  if (document.getElementById('tab-outlet-pl').style.display    !== 'none') renderOutletPLTab();
+  if (document.getElementById('tab-source-trend').style.display !== 'none') renderSourceTrendTab();
 }
 
 function resetFilters(){
@@ -11900,6 +11964,240 @@ function renderOutletPLTab() {
   </tr></tbody></table>`;
 
   document.getElementById('opl-table').innerHTML=h;
+}
+
+// ── SOURCE BREAKDOWN TAB (Outlet × Source × Months) ──────────────────────────
+function renderSourceTrendTab() {
+  if (!BWPL_LOADED) {
+    document.getElementById('smt-kpi-grid').innerHTML = '<p style="padding:12px;color:var(--muted);font-size:12px">⏳ Loading CY Branwood data…</p>';
+    if (BWPL_LOADING) { setTimeout(()=>renderSourceTrendTab(), 400); }
+    else { fetchBWPLData().then(()=>renderSourceTrendTab()).catch(e=>{
+      document.getElementById('smt-kpi-grid').innerHTML=`<p style="padding:12px;color:#ef4444;font-size:12px">Failed: ${e.message}</p>`;
+    }); }
+    return;
+  }
+
+  // ── Sidebar filters (same pattern as renderOutletPLTab) ────────────────────
+  const selYears  = new Set(getSel('fYear').map(Number));
+  const selMonths = new Set(getSel('fMonth'));
+  const selOutlets= new Set(getSel('fOutlet'));
+  const selBrands = new Set(getSel('fBrand'));
+  const selMgr    = new Set(getSel('fManager'));
+  const selFC     = new Set(getSel('fFC'));
+  const selSrcs   = new Set(getSel('fSource'));
+  const BWPL_KNOWN_OUTLETS    = new Set(Object.keys(BWPL_OUTLET_META));
+  const SIDEBAR_KNOWN_OUTLETS = new Set(Array.from(document.querySelectorAll('#fOutlet input')).map(cb=>cb.value));
+  const SIDEBAR_KNOWN_BRANDS  = new Set(Array.from(document.querySelectorAll('#fBrand input')).map(cb=>cb.value));
+  const SIDEBAR_KNOWN_MGRS    = new Set(Array.from(document.querySelectorAll('#fManager input')).map(cb=>cb.value));
+  const SIDEBAR_KNOWN_FC      = new Set(Array.from(document.querySelectorAll('#fFC input')).map(cb=>cb.value));
+  const outletFilterActive = selOutlets.size||selBrands.size||selMgr.size||selFC.size;
+  const allowedBWPLOutlets = new Set();
+  for (const [code,meta] of Object.entries(BWPL_OUTLET_META)) {
+    if (selOutlets.size && SIDEBAR_KNOWN_OUTLETS.has(code)       && !selOutlets.has(code))          continue;
+    if (selBrands.size  && meta.brand && SIDEBAR_KNOWN_BRANDS.has(meta.brand) && !selBrands.has(meta.brand)) continue;
+    if (selMgr.size     && meta.mgr   && SIDEBAR_KNOWN_MGRS.has(meta.mgr)     && !selMgr.has(meta.mgr))     continue;
+    if (selFC.size      && meta.fc    && SIDEBAR_KNOWN_FC.has(meta.fc)         && !selFC.has(meta.fc))       continue;
+    allowedBWPLOutlets.add(code);
+  }
+
+  // ── Source-code mapping ──────────────────────────────────────────────────
+  const SUB_TO_SRC = {
+    'CDC SALE':'CDC', 'FC SALE':'FC Counter', 'QLUB SALE':'QLUB',
+    'FP SALE':'FP', 'GF SALE':'GF', 'DVROO SALE':'DVROO', 'SHOPBACK SALE':'SHOPBACK'
+  };
+  const SRC_LABEL = { 'CDC':'CDC', 'FC Counter':'FC Counter', 'QLUB':'Qlub',
+                      'FP':'Foodpanda', 'GF':'GrabFood', 'DVROO':'Deliveroo', 'SHOPBACK':'Shopback', 'OTHER':'Other' };
+  const SRC_COLOR = { 'CDC':'#1a6fd8', 'FC Counter':'#8b5cf6', 'QLUB':'#06b6d4',
+                      'FP':'#ef4444', 'GF':'#16a163', 'DVROO':'#f59e0b', 'SHOPBACK':'#ec4899', 'OTHER':'#94a3b8' };
+  const SRC_ORDER = ['CDC','FC Counter','QLUB','FP','GF','DVROO','SHOPBACK','OTHER'];
+
+  const now   = new Date();
+  const curMk = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+  // ── Aggregate: outlet → source → month → revenue ──────────────────────────
+  const data = {};                          // data[outlet][source][mk] = amt
+  const monthsSet = new Set();
+  const sourcesSet = new Set();
+
+  for (const r of BWPL_DATA) {
+    if (r.mk > curMk) continue;
+    if (r.mainCode !== 'SALES') continue;
+    if (r.amt <= 0 || !r.outlet) continue;
+    const yr = +r.mk.split('-')[0];
+    if (selYears.size  && !selYears.has(yr))    continue;
+    if (selMonths.size && !selMonths.has(r.mk)) continue;
+    if (outletFilterActive && !allowedBWPLOutlets.has(r.outlet)) continue;
+    const src = SUB_TO_SRC[r.subCode] || 'OTHER';
+    if (selSrcs.size && SUB_TO_SRC[r.subCode] && !selSrcs.has(src)) continue;
+    if (!data[r.outlet]) data[r.outlet] = {};
+    if (!data[r.outlet][src]) data[r.outlet][src] = {};
+    data[r.outlet][src][r.mk] = (data[r.outlet][src][r.mk] || 0) + r.amt;
+    monthsSet.add(r.mk);
+    sourcesSet.add(src);
+  }
+
+  const months  = [...monthsSet].sort();      // chronological
+  const sources = SRC_ORDER.filter(s => sourcesSet.has(s));
+
+  // Outlets sorted by total revenue desc
+  const outletTotals = Object.entries(data).map(([code,bySrc]) => {
+    const tot = Object.values(bySrc).reduce((s,bm)=>s+Object.values(bm).reduce((a,b)=>a+b,0),0);
+    const meta = BWPL_OUTLET_META[code]||{};
+    return { code, tot, brand:meta.brand||'', mgr:meta.mgr||'', fc:meta.fc||'' };
+  }).sort((a,b)=>b.tot-a.tot);
+
+  // Grand totals
+  const grandRev = outletTotals.reduce((s,o)=>s+o.tot,0);
+  const srcTotals = {};
+  sources.forEach(s => { srcTotals[s] = 0; });
+  outletTotals.forEach(o => {
+    sources.forEach(s => {
+      const bm = data[o.code]?.[s] || {};
+      srcTotals[s] += Object.values(bm).reduce((a,b)=>a+b,0);
+    });
+  });
+  const monthTotals = {};
+  months.forEach(mk => {
+    monthTotals[mk] = 0;
+    outletTotals.forEach(o => {
+      sources.forEach(s => { monthTotals[mk] += data[o.code]?.[s]?.[mk] || 0; });
+    });
+  });
+
+  const topSrc = Object.entries(srcTotals).sort((a,b)=>b[1]-a[1])[0];
+  const topOutlet = outletTotals[0];
+
+  // ── KPI Cards ─────────────────────────────────────────────────────────────
+  const monthsLabel = m => {
+    const [y,mo]=m.split('-'); return `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+mo-1]} ${y.slice(2)}`;
+  };
+  document.getElementById('smt-kpi-grid').className='pl-kpi-grid';
+  document.getElementById('smt-kpi-grid').innerHTML=`
+    <div class="pl-kpi" style="--pkc:#f59e0b"><div class="pl-kpi-icon">📡</div>
+      <div class="pl-kpi-lbl">Total Revenue</div><div class="pl-kpi-val" style="color:#f59e0b">${plFmt(grandRev)}</div>
+      <div class="pl-kpi-sub">${months.length} month${months.length===1?'':'s'} · ${outletTotals.length} outlets</div></div>
+    ${topSrc?`<div class="pl-kpi" style="--pkc:${SRC_COLOR[topSrc[0]]||'#1a6fd8'}"><div class="pl-kpi-icon">🏅</div>
+      <div class="pl-kpi-lbl">Top Source</div><div class="pl-kpi-val" style="font-size:20px;color:${SRC_COLOR[topSrc[0]]||'#1a6fd8'}">${SRC_LABEL[topSrc[0]]||topSrc[0]}</div>
+      <div class="pl-kpi-sub">${plFmt(topSrc[1])} (${grandRev>0?(topSrc[1]/grandRev*100).toFixed(1):0}%)</div></div>`:''}
+    ${topOutlet?`<div class="pl-kpi" style="--pkc:#8b5cf6"><div class="pl-kpi-icon">🏪</div>
+      <div class="pl-kpi-lbl">Top Outlet</div><div class="pl-kpi-val" style="font-size:18px">${topOutlet.code}</div>
+      <div class="pl-kpi-sub">${plFmt(topOutlet.tot)} · ${topOutlet.brand||'—'}</div></div>`:''}
+    <div class="pl-kpi" style="--pkc:#06b6d4"><div class="pl-kpi-icon">🔢</div>
+      <div class="pl-kpi-lbl">Active Sources</div><div class="pl-kpi-val">${sources.length}</div>
+      <div class="pl-kpi-sub">of ${SRC_ORDER.length-1} mapped</div></div>
+    ${months.length>=2?(()=>{
+      const first=monthTotals[months[0]], last=monthTotals[months[months.length-1]];
+      const delta = first>0 ? (last-first)/first*100 : 0;
+      const up = delta>=0;
+      return `<div class="pl-kpi" style="--pkc:${up?'#16a163':'#ef4444'}"><div class="pl-kpi-icon">${up?'📈':'📉'}</div>
+        <div class="pl-kpi-lbl">Trend (1st→Last Month)</div>
+        <div class="pl-kpi-val" style="color:${up?'#16a163':'#ef4444'}">${up?'+':''}${delta.toFixed(1)}%</div>
+        <div class="pl-kpi-sub">${monthsLabel(months[0])} → ${monthsLabel(months[months.length-1])}</div></div>`;
+    })():''}`;
+
+  // ── CHART 1: Source revenue trend by month ───────────────────────────────
+  if (plCharts.smtTrend) plCharts.smtTrend.destroy();
+  const trendCtx = document.getElementById('smt-trend-chart');
+  if (trendCtx && months.length) {
+    plCharts.smtTrend = new Chart(trendCtx, {
+      type:'line',
+      data:{ labels: months.map(monthsLabel),
+        datasets: sources.map(s => ({
+          label: SRC_LABEL[s]||s,
+          data: months.map(mk => {
+            let sum=0;
+            outletTotals.forEach(o => { sum += data[o.code]?.[s]?.[mk] || 0; });
+            return sum;
+          }),
+          borderColor: SRC_COLOR[s]||'#94a3b8',
+          backgroundColor: (SRC_COLOR[s]||'#94a3b8')+'22',
+          tension:.3, borderWidth:2, pointRadius:3, fill:false
+        }))
+      },
+      options:{ responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{labels:{color:'#666',font:{size:10},boxWidth:12}},
+          tooltip:{callbacks:{label:c=>c.dataset.label+': '+plFmtFull(c.raw)}}},
+        scales:{ x:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#666',font:{size:10}}},
+                 y:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#999',font:{size:10},callback:v=>plFmt(v)}}}
+      }
+    });
+  }
+
+  // ── CHART 2: Source mix donut ────────────────────────────────────────────
+  if (plCharts.smtMix) plCharts.smtMix.destroy();
+  const mixCtx = document.getElementById('smt-mix-chart');
+  if (mixCtx && sources.length) {
+    plCharts.smtMix = new Chart(mixCtx, {
+      type:'doughnut',
+      data:{ labels: sources.map(s=>SRC_LABEL[s]||s),
+        datasets:[{ data: sources.map(s=>srcTotals[s]),
+          backgroundColor: sources.map(s=>SRC_COLOR[s]||'#94a3b8'), borderWidth:2, borderColor:'#fff' }]},
+      options:{ responsive:true, maintainAspectRatio:false, cutout:'60%',
+        plugins:{ legend:{position:'right',labels:{color:'#555',font:{size:11},boxWidth:12,padding:8}},
+          tooltip:{callbacks:{label:c=>{const pct=grandRev>0?(c.raw/grandRev*100).toFixed(1):0;
+            return `${c.label}: ${plFmtFull(c.raw)} (${pct}%)`;}}}}
+      }
+    });
+  }
+
+  // ── TABLE: Outlet × Source × Months ──────────────────────────────────────
+  let h = `<table class="smt-tbl"><thead><tr>
+    <th class="smt-th smt-th-label">Outlet / Source</th>`;
+  months.forEach(mk => { h += `<th class="smt-th">${monthsLabel(mk)}</th>`; });
+  h += `<th class="smt-th smt-tot-col">Total</th></tr></thead><tbody>`;
+
+  const fmtCell = (v, prevV) => {
+    if (!v) return `<td class="smt-td smt-val-zero">—</td>`;
+    let mom = '';
+    if (prevV != null && prevV > 0) {
+      const d = (v-prevV)/prevV*100;
+      const cls = d >= 0 ? 'smt-mom-up' : 'smt-mom-dn';
+      const sign = d >= 0 ? '+' : '';
+      if (Math.abs(d) >= 1) mom = `<span class="smt-mom ${cls}">${sign}${d.toFixed(0)}%</span>`;
+    }
+    return `<td class="smt-td"><span class="smt-val">${plFmtFull(v)}</span>${mom}</td>`;
+  };
+
+  outletTotals.forEach(o => {
+    // Outlet header row — sums all sources for this outlet
+    const outletMonthly = months.map(mk => {
+      let sum=0; sources.forEach(s => { sum += data[o.code]?.[s]?.[mk] || 0; }); return sum;
+    });
+    const outletTot = outletMonthly.reduce((a,b)=>a+b,0);
+    h += `<tr class="smt-outlet-row"><td class="smt-td smt-td-label">
+      <span class="smt-outlet-code">${o.code}</span>
+      <span class="smt-outlet-meta">${o.brand||'—'} · ${o.mgr||'—'} · ${o.fc||'—'}</span></td>`;
+    outletMonthly.forEach((v,i) => {
+      h += fmtCell(v, i>0 ? outletMonthly[i-1] : null);
+    });
+    h += `<td class="smt-td smt-tot-col"><strong>${plFmtFull(outletTot)}</strong></td></tr>`;
+
+    // One row per source for this outlet
+    sources.forEach(s => {
+      const srcMonthly = months.map(mk => data[o.code]?.[s]?.[mk] || 0);
+      const srcTot = srcMonthly.reduce((a,b)=>a+b,0);
+      if (srcTot === 0) return;  // skip empty source rows
+      const pctOfOutlet = outletTot > 0 ? (srcTot/outletTot*100) : 0;
+      h += `<tr class="smt-src-row"><td class="smt-td smt-td-label">
+        <span class="smt-src-dot" style="background:${SRC_COLOR[s]||'#94a3b8'}"></span>${SRC_LABEL[s]||s}
+        <span class="smt-cell-pct" style="display:inline;margin-left:6px">${pctOfOutlet.toFixed(1)}% of outlet</span></td>`;
+      srcMonthly.forEach((v,i) => {
+        h += fmtCell(v, i>0 ? srcMonthly[i-1] : null);
+      });
+      h += `<td class="smt-td smt-tot-col">${plFmtFull(srcTot)}</td></tr>`;
+    });
+  });
+
+  // Grand total row
+  h += `<tr class="smt-grand-row"><td class="smt-td smt-td-label">
+    <span style="color:#4338ca">▣ GRAND TOTAL (${outletTotals.length} outlets)</span></td>`;
+  months.forEach(mk => {
+    h += `<td class="smt-td"><strong>${plFmtFull(monthTotals[mk])}</strong></td>`;
+  });
+  h += `<td class="smt-td smt-tot-col"><strong>${plFmtFull(grandRev)}</strong></td></tr>`;
+  h += `</tbody></table>`;
+
+  document.getElementById('smt-table').innerHTML = h;
 }
 
 fetchBWPLData().catch(err => console.warn('BW P&L prefetch failed:', err));
