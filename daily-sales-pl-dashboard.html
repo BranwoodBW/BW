@@ -11258,12 +11258,28 @@ async function fetchOutletMaster() {
   }
 }
 
+// ── Manual outlet meta overrides ─────────────────────────────────────────────
+// CTM sheet has incorrect or missing entries for some outlets.
+// Entries here override (or supply) brand/mgr/fc for the listed outlet codes.
+// Keep in sync with the CTM sheet — once CTM is fixed, the corresponding row
+// here can be removed.
+const BWPL_OUTLET_META_OVERRIDES = {
+  'PSR1':   { brand:'SEABAY DELIGHT', mgr:'ALEX',     fc:'KPT' },
+  'PSR1-1': { brand:'SEABAY DELIGHT', mgr:'HQ',       fc:'KPT' },
+  'PSR1-2': { brand:'SEABAY DELIGHT', mgr:'YUANZHEN', fc:'KPT' },
+};
+
 async function fetchBWPLData() {
   if (BWPL_LOADED || BWPL_LOADING) return;
   BWPL_LOADING = true;
 
   // ── 1. Fetch outlet master from CTM sheet ──────────────────────────────────
-  const ctmMeta = await fetchOutletMaster();
+  const ctmMetaRaw = await fetchOutletMaster();
+  // Apply manual overrides (and add entries for outlets missing from CTM)
+  const ctmMeta = ctmMetaRaw ? {...ctmMetaRaw} : {};
+  Object.entries(BWPL_OUTLET_META_OVERRIDES).forEach(([code, ov]) => {
+    ctmMeta[code] = { ...(ctmMeta[code]||{}), ...ov };
+  });
 
   // ── 2. Fetch P&L rows from 2025 Data & 2026 Data sheets ───────────────────
   // The sheet has 3 tables separated by black columns:
