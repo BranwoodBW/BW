@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Branwood Group — Outlet Drill-down</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f2f7;color:#1a1d2e}
+
+header{
+  background:linear-gradient(130deg,#1a1d2e 0%,#2e3562 100%);
+  color:#fff;padding:18px 28px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+}
+header h1{font-size:1.25rem;font-weight:700;letter-spacing:-.2px}
+header p{font-size:.76rem;color:#a5b4fc;margin-top:2px}
+.btn-refresh{
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);
+  color:#fff;padding:8px 14px;border-radius:8px;font-size:.8rem;font-weight:600;
+  cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background .15s;
+}
+.btn-refresh:hover:not(:disabled){background:rgba(255,255,255,.2)}
+.btn-refresh:disabled{opacity:.6;cursor:not-allowed}
+.btn-refresh.spinning svg{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.refresh-meta{font-size:.7rem;color:#c7d2fe;margin-top:4px;text-align:right}
+
+/* Layout: sidebar + main */
+.layout{display:flex;align-items:stretch;min-height:calc(100vh - 70px)}
+
+.sidebar{
+  width:300px;flex-shrink:0;background:#fff;border-right:1px solid #e5e9f0;
+  display:flex;flex-direction:column;position:sticky;top:0;align-self:flex-start;
+  height:calc(100vh - 70px);
+}
+.sb-head{padding:14px 16px 10px;border-bottom:1px solid #f1f5f9;display:flex;flex-direction:column;gap:10px}
+.sb-label{font-size:.66rem;text-transform:uppercase;letter-spacing:.6px;color:#9ca3af;font-weight:700}
+.sb-search{
+  width:100%;padding:7px 11px;border:1px solid #e5e9f0;border-radius:7px;
+  font-size:.84rem;color:#1a1d2e;outline:none;
+}
+.sb-search:focus{border-color:#2563eb}
+.sb-meta{font-size:.72rem;color:#9ca3af;padding:0 16px;margin-top:8px}
+.sb-meta b{color:#374151}
+
+.pill-group{display:inline-flex;border:1px solid #e5e9f0;border-radius:7px;overflow:hidden;background:#fff;width:100%}
+.pill-group .pill{
+  flex:1;border:none;background:none;padding:6px 8px;font-size:.74rem;font-weight:600;color:#6b7280;
+  cursor:pointer;border-right:1px solid #e5e9f0;transition:background .15s,color .15s;
+}
+.pill-group .pill:last-child{border-right:none}
+.pill-group .pill:hover{background:#f8fafc;color:#374151}
+.pill-group .pill.active{background:#2563eb;color:#fff}
+
+.sb-list{flex:1;overflow-y:auto;padding:6px 0 12px}
+.sb-brand{margin:6px 0 0}
+.sb-brand-head{
+  padding:6px 16px;font-size:.66rem;text-transform:uppercase;letter-spacing:.7px;
+  color:#9ca3af;font-weight:700;background:#f8fafc;display:flex;justify-content:space-between;
+}
+.sb-brand-head .count{color:#cbd5e1}
+.sb-item{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:7px 16px;cursor:pointer;border-left:3px solid transparent;
+  font-size:.83rem;color:#374151;transition:background .1s,border-color .1s;
+}
+.sb-item:hover{background:#f8fafc}
+.sb-item.active{background:#eff6ff;border-left-color:#2563eb;color:#1d4ed8;font-weight:600}
+.sb-item .code{font-family:'SF Mono','Fira Code',monospace;font-size:.78rem}
+.sb-item .fc{font-size:.66rem;color:#9ca3af;text-transform:uppercase;letter-spacing:.4px;font-weight:600}
+.sb-item.closed .code{text-decoration:line-through;color:#9ca3af}
+.sb-item.active.closed .code{color:#1d4ed8}
+.sb-item .sub{font-size:.66rem;color:#9ca3af;font-weight:400;display:block;margin-top:1px}
+.sb-no-results{padding:20px 16px;text-align:center;color:#9ca3af;font-size:.8rem}
+
+/* Main */
+main{flex:1;padding:24px 28px 60px;max-width:1300px;width:100%}
+
+.empty-state{
+  background:#fff;border:1px dashed #cbd5e1;border-radius:14px;
+  padding:60px 40px;text-align:center;color:#6b7280;
+}
+.empty-state h2{font-size:1.05rem;font-weight:600;color:#374151;margin-bottom:8px}
+.empty-state p{font-size:.86rem;line-height:1.5}
+
+/* Outlet header card */
+.hero{
+  background:#fff;border:1px solid #e5e9f0;border-radius:14px;
+  padding:20px 24px;margin-bottom:18px;
+  display:grid;grid-template-columns:1fr auto;gap:18px;align-items:flex-start;
+}
+.hero-code{font-family:'SF Mono','Fira Code',monospace;font-size:1.6rem;font-weight:800;color:#1a1d2e;letter-spacing:-.5px;margin-bottom:6px}
+.hero-brand{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.hero-brand .badge{font-size:.78rem;padding:4px 11px}
+.hero-sub{font-size:.85rem;color:#6b7280;font-weight:500}
+.hero-meta{font-size:.78rem;color:#9ca3af;margin-top:6px}
+.hero-status{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.status-pill{font-size:.72rem;font-weight:700;padding:4px 12px;border-radius:20px}
+.s-op{background:#dcfce7;color:#166534}
+.s-cl{background:#fee2e2;color:#991b1b}
+.hero-dates{font-size:.74rem;color:#6b7280;text-align:right;line-height:1.6}
+.hero-dates b{color:#1a1d2e}
+
+/* Info grid */
+.section-head{
+  font-size:.7rem;text-transform:uppercase;letter-spacing:.7px;color:#9ca3af;
+  font-weight:700;margin:18px 0 10px;padding-left:2px;
+}
+.info-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;
+  margin-bottom:6px;
+}
+.info-tile{
+  background:#fff;border:1px solid #e5e9f0;border-radius:10px;
+  padding:12px 16px;display:flex;flex-direction:column;gap:4px;
+}
+.info-tile.wide{grid-column:1/-1}
+.info-label{font-size:.66rem;text-transform:uppercase;letter-spacing:.6px;color:#9ca3af;font-weight:700}
+.info-val{font-size:.88rem;color:#1a1d2e;font-weight:500;line-height:1.4;word-break:break-word;user-select:text}
+.info-val.mono{font-family:'SF Mono','Fira Code',monospace;font-size:.82rem}
+.info-val.empty{color:#cbd5e1;font-style:italic;font-weight:400}
+
+/* Brand badges */
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:.7rem;font-weight:700;white-space:nowrap}
+.b-sea{background:#dbeafe;color:#1d4ed8}
+.b-haus{background:#ffedd5;color:#9a3412}
+.b-hjo{background:#dcfce7;color:#15803d}
+.b-hji{background:#fef9c3;color:#713f12}
+.b-mhk{background:#d1fae5;color:#065f46}
+.b-spi{background:#cffafe;color:#0e7490}
+.b-ali{background:#fee2e2;color:#991b1b}
+.b-jkc{background:#ede9fe;color:#5b21b6}
+.b-ck{background:#f1f5f9;color:#475569}
+
+/* Phase 2 placeholder cards */
+.future-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;
+  margin-top:8px;
+}
+.future-card{
+  background:#fff;border:1px solid #e5e9f0;border-radius:12px;
+  padding:18px 20px;position:relative;overflow:hidden;
+  display:flex;flex-direction:column;gap:8px;min-height:140px;
+}
+.future-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:#cbd5e1}
+.future-head{display:flex;align-items:center;gap:10px}
+.future-icon{
+  width:34px;height:34px;border-radius:8px;background:#f1f5f9;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:.8rem;color:#6b7280;
+}
+.future-title{font-size:.92rem;font-weight:700;color:#1a1d2e}
+.future-pending{
+  display:inline-block;font-size:.65rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.6px;background:#fef3c7;color:#78350f;padding:3px 8px;border-radius:4px;
+}
+.future-desc{font-size:.78rem;color:#6b7280;line-height:1.5;margin-top:2px}
+.future-source{font-size:.7rem;color:#9ca3af;margin-top:auto;padding-top:4px;border-top:1px solid #f1f5f9}
+
+#loadingOverlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);
+  color:#fff;font-size:1.05rem;font-weight:500;
+  align-items:center;justify-content:center;z-index:9999;
+}
+#loadingOverlay.show{display:flex}
+
+.error-banner{
+  background:#fee2e2;color:#991b1b;border:1px solid #fecaca;
+  border-radius:8px;padding:12px 16px;margin:16px 28px 0;font-size:.85rem;
+}
+</style>
+</head>
+<body>
+
+<div id="loadingOverlay">Fetching CTM sheet...</div>
+
+<header>
+  <div>
+    <h1>Branwood Group</h1>
+    <p>Outlet Drill-down - CTM Sheet (Live)</p>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+    <button class="btn-refresh" id="refreshBtn" onclick="refreshData()">
+      <svg id="refreshIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      Refresh
+    </button>
+    <span class="refresh-meta" id="refreshMeta">-</span>
+  </div>
+</header>
+
+<div id="errorBanner" class="error-banner" style="display:none"></div>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sb-head">
+      <div>
+        <div class="sb-label" style="margin-bottom:4px">Status</div>
+        <div class="pill-group" id="statusPills">
+          <button class="pill active" data-val="active" onclick="setStatusFilter('active')">Active</button>
+          <button class="pill" data-val="inactive" onclick="setStatusFilter('inactive')">Inactive</button>
+          <button class="pill" data-val="both" onclick="setStatusFilter('both')">Both</button>
+        </div>
+      </div>
+      <div>
+        <div class="sb-label" style="margin-bottom:4px">Search</div>
+        <input class="sb-search" id="sbSearch" type="text" placeholder="Code, brand, manager, address..." oninput="renderList()"/>
+      </div>
+    </div>
+    <div class="sb-meta"><b id="poolCount">-</b> outlets &middot; <span id="visibleCount">-</span> shown</div>
+    <div class="sb-list" id="sbList"></div>
+  </aside>
+
+  <main id="content">
+    <div class="empty-state">
+      <h2>Select an outlet to view details</h2>
+      <p>Pick an outlet from the list on the left. Use the <b>Status</b> filter and <b>Search</b> to narrow it down.</p>
+    </div>
+  </main>
+</div>
+
+<script>
+const SHEET_ID = '1HFm4S3QvJOG4u_pE8U9D8JSqwuX2Cs8qt9MHpzLsnbs';
+const GID = '408242429';
+const CSV_URL = (cb) => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}` + (cb ? `&_=${Date.now()}` : '');
+
+const COL = {
+  K_entity:10, L_entity_short:11, M_in_ex:12, N_price_code:13,
+  O_food_court:14, P_brand_full:15, Q_data_code:16,
+  R_l6:17, S_l5:18, T_manager:19, U_l3:20, V_l2:21,
+  W_outlet_code:22, X_open_date:23, Y_close_date:24, Z_operating:25,
+  AA_sfa:26, AB_address:27, AC_acc_email:28, AD_stm_code:29,
+  AE_fc_qty:30, AF_fp_qty:31
+};
+
+const FC_LABEL = {KPT:'Kopitiam', KOUFU:'Koufu', FJ:'Food Junction', OTH:'Others', '':'HQ/Internal'};
+
+function badgeClass(b){
+  if (!b) return 'b-ck';
+  if (b.includes('SEABAY')) return 'b-sea';
+  if (b.includes('HAUS')) return 'b-haus';
+  if (b === 'HAO JIA MEE HOON KUAY') return 'b-mhk';
+  if (b.includes('HAO JIA JI')) return 'b-hji';
+  if (b.includes('HAO JIA')) return 'b-hjo';
+  if (b.includes('SPINACH')) return 'b-spi';
+  if (b.includes('ALI')) return 'b-ali';
+  if (b.includes('JAPANESE') || b.includes('KOREAN')) return 'b-jkc';
+  return 'b-ck';
+}
+
+// CSV parser handling embedded newlines in quoted cells
+function parseCSV(text){
+  const rows = [];
+  let cur = '', row = [], inQ = false;
+  for (let i = 0; i < text.length; i++){
+    const c = text[i];
+    if (c === '"'){
+      if (inQ && text[i+1] === '"'){ cur += '"'; i++; }
+      else { inQ = !inQ; }
+    } else if (c === ',' && !inQ){
+      row.push(cur); cur = '';
+    } else if ((c === '\n' || c === '\r') && !inQ){
+      if (c === '\r' && text[i+1] === '\n') i++;
+      row.push(cur); cur = '';
+      if (row.length > 1 || row[0] !== '') rows.push(row);
+      row = [];
+    } else { cur += c; }
+  }
+  if (cur.length || row.length){ row.push(cur); rows.push(row); }
+  return rows;
+}
+
+let OUTLETS = [];
+let STATUS = 'active';
+
+async function fetchData(showOverlay){
+  const overlay = document.getElementById('loadingOverlay');
+  const banner = document.getElementById('errorBanner');
+  banner.style.display = 'none';
+  if (showOverlay){ overlay.classList.add('show'); }
+  try {
+    const r = await fetch(CSV_URL(true), { credentials: 'omit' });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const text = await r.text();
+    const rows = parseCSV(text);
+    OUTLETS = [];
+    for (let i = 1; i < rows.length; i++){
+      const r = rows[i];
+      if (r.length < 32) continue;
+      const inEx = (r[COL.M_in_ex] || '').trim().toUpperCase();
+      if (inEx === 'EX') continue;
+      const code = (r[COL.W_outlet_code] || '').trim();
+      const brandFull = (r[COL.P_brand_full] || '').trim();
+      const fc = (r[COL.O_food_court] || '').trim();
+      if (!code || !brandFull || !fc) continue;  // user-facing only (O filled)
+      const [brand, ...subParts] = brandFull.split(' - ');
+      OUTLETS.push({
+        outlet_code: code,
+        brand_full: brandFull,
+        brand: brand.trim(),
+        sub_brand: subParts.join(' - ').trim(),
+        manager: (r[COL.T_manager] || '').trim(),
+        food_court: fc,
+        entity: (r[COL.K_entity] || '').trim(),
+        entity_short: (r[COL.L_entity_short] || '').trim(),
+        customer_type: inEx,
+        open_date: (r[COL.X_open_date] || '').trim(),
+        close_date: (r[COL.Y_close_date] || '').trim(),
+        operating: (r[COL.Z_operating] || '').trim().toUpperCase() === 'Y',
+        sfa_number: (r[COL.AA_sfa] || '').trim(),
+        address: (r[COL.AB_address] || '').trim().replace(/\n/g,' | '),
+        acc_email: (r[COL.AC_acc_email] || '').trim(),
+        fc_qty_code: (r[COL.AE_fc_qty] || '').trim(),
+        fp_qty_code: (r[COL.AF_fp_qty] || '').trim(),
+        price_code: (r[COL.N_price_code] || '').trim(),
+        data_code: (r[COL.Q_data_code] || '').trim(),
+        l6: (r[COL.R_l6] || '').trim(),
+        l5: (r[COL.S_l5] || '').trim(),
+        l3: (r[COL.U_l3] || '').trim(),
+        l2: (r[COL.V_l2] || '').trim(),
+        stm_code: (r[COL.AD_stm_code] || '').trim()
+      });
+    }
+    const stamp = new Date();
+    document.getElementById('refreshMeta').textContent = 'As of ' + stamp.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) + ' ' + stamp.toLocaleDateString();
+    overlay.classList.remove('show');
+    return true;
+  } catch (err){
+    overlay.classList.remove('show');
+    banner.style.display = 'block';
+    banner.textContent = 'Could not fetch CTM sheet: ' + err.message + '. The sheet must be shared as "Anyone with link - Viewer".';
+    console.error(err);
+    return false;
+  }
+}
+
+function refreshData(){
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('spinning'); btn.disabled = true;
+  fetchData(false).then(ok => {
+    btn.classList.remove('spinning'); btn.disabled = false;
+    if (ok) renderList();
+  });
+}
+
+let SELECTED_CODE = null;
+
+function setStatusFilter(val){
+  STATUS = val;
+  document.querySelectorAll('#statusPills .pill').forEach(p => p.classList.toggle('active', p.dataset.val === val));
+  renderList();
+}
+
+function renderList(){
+  const search = document.getElementById('sbSearch').value.trim().toLowerCase();
+  const pool = STATUS === 'both' ? OUTLETS
+             : STATUS === 'active' ? OUTLETS.filter(o => o.operating)
+             : OUTLETS.filter(o => !o.operating);
+  document.getElementById('poolCount').textContent = pool.length;
+
+  const visible = search
+    ? pool.filter(o => `${o.outlet_code} ${o.brand} ${o.sub_brand} ${o.manager} ${o.address} ${o.entity}`.toLowerCase().includes(search))
+    : pool;
+  document.getElementById('visibleCount').textContent = visible.length;
+
+  // Group by brand
+  const byBrand = {};
+  visible.forEach(o => { (byBrand[o.brand] = byBrand[o.brand] || []).push(o); });
+  const brands = Object.keys(byBrand).sort();
+
+  const list = document.getElementById('sbList');
+  if (!brands.length){
+    list.innerHTML = '<div class="sb-no-results">No outlets match the current filters.</div>';
+    return;
+  }
+  list.innerHTML = brands.map(brand => {
+    const items = byBrand[brand].sort((a,b) => a.outlet_code.localeCompare(b.outlet_code));
+    return `<div class="sb-brand">
+      <div class="sb-brand-head">
+        <span>${brand}</span>
+        <span class="count">${items.length}</span>
+      </div>
+      ${items.map(o => `
+        <div class="sb-item ${o.operating ? '' : 'closed'} ${o.outlet_code === SELECTED_CODE ? 'active' : ''}"
+             data-code="${o.outlet_code}" onclick="selectOutlet('${o.outlet_code.replace(/'/g, "\\'")}')">
+          <div>
+            <div class="code">${o.outlet_code}</div>
+            ${o.sub_brand ? `<span class="sub">${o.sub_brand}</span>` : ''}
+          </div>
+          <span class="fc">${FC_LABEL[o.food_court] || o.food_court}</span>
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+function selectOutlet(code){
+  SELECTED_CODE = code;
+  document.querySelectorAll('.sb-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.code === code);
+  });
+  onPick();
+}
+
+function val(v, mono){
+  if (!v) return '<span class="info-val empty">- not set -</span>';
+  return `<span class="info-val${mono ? ' mono' : ''}">${v}</span>`;
+}
+
+function tile(label, value, opts){
+  opts = opts || {};
+  const cls = opts.wide ? 'info-tile wide' : 'info-tile';
+  return `<div class="${cls}"><span class="info-label">${label}</span>${val(value, opts.mono)}</div>`;
+}
+
+const FUTURE_SECTIONS = [
+  { icon: 'S', title: 'Sales Trend', source: 'Daily Sales sheet (live)',
+    desc: 'Daily revenue trend with dine-in vs delivery channel split. Filter by date range.' },
+  { icon: 'P', title: 'P&L Snapshot', source: 'P&L costs sheet (Accounts)',
+    desc: 'Latest month gross/net margin, cost breakdown vs target.' },
+  { icon: 'M', title: 'Marketing Log', source: 'MKT Tracker sheet (live)',
+    desc: 'Active and historical marketing activities at this outlet.' },
+  { icon: 'D', title: 'Delivery Performance', source: 'GF + FP monthly statements',
+    desc: 'Delivery sales, ad spend, commission, net payout from the latest GF/FP statements.' },
+  { icon: 'R', title: 'Active Promos', source: 'Promo Tracker sheet (live)',
+    desc: 'Promotions running at this outlet right now and ending soon.' },
+  { icon: 'Q', title: 'Top Items by Qty', source: 'POS CSD + GF/FP qty (monthly)',
+    desc: 'Best-selling items matched to the Menu Masterlist for the latest period.' }
+];
+
+function renderFutureCards(){
+  return `<div class="section-head">Coming in Phase 2</div>
+    <div class="future-grid">
+      ${FUTURE_SECTIONS.map(s => `
+        <div class="future-card">
+          <div class="future-head">
+            <div class="future-icon">${s.icon}</div>
+            <div>
+              <div class="future-title">${s.title}</div>
+              <span class="future-pending">Pending data source</span>
+            </div>
+          </div>
+          <div class="future-desc">${s.desc}</div>
+          <div class="future-source">Source: ${s.source}</div>
+        </div>`).join('')}
+    </div>`;
+}
+
+function onPick(){
+  const code = SELECTED_CODE;
+  const content = document.getElementById('content');
+  if (!code){
+    content.innerHTML = `<div class="empty-state"><h2>Select an outlet to view details</h2><p>Pick from the list on the left.</p></div>`;
+    return;
+  }
+  const o = OUTLETS.find(x => x.outlet_code === code);
+  if (!o){ content.innerHTML = `<div class="empty-state"><h2>Outlet not found</h2></div>`; return; }
+
+  const fcL = FC_LABEL[o.food_court] || (o.food_court || 'HQ/Internal');
+  const status = o.operating
+    ? '<span class="status-pill s-op">Operating</span>'
+    : '<span class="status-pill s-cl">Closed</span>';
+
+  content.innerHTML = `
+    <div class="hero">
+      <div>
+        <div class="hero-code">${o.outlet_code}</div>
+        <div class="hero-brand">
+          <span class="badge ${badgeClass(o.brand)}">${o.brand}</span>
+          ${o.sub_brand ? `<span class="hero-sub">${o.sub_brand}</span>` : ''}
+        </div>
+        <div class="hero-meta">${o.manager} &nbsp;&middot;&nbsp; ${fcL} &nbsp;&middot;&nbsp; ${o.entity_short || o.entity}</div>
+      </div>
+      <div class="hero-status">
+        ${status}
+        <div class="hero-dates">
+          ${o.open_date ? `Opened: <b>${o.open_date}</b>` : ''}
+          ${o.close_date ? `<br>Closed: <b>${o.close_date}</b>` : ''}
+        </div>
+      </div>
+    </div>
+
+    <div class="section-head">Location &amp; Identity</div>
+    <div class="info-grid">
+      ${tile('Address', o.address, {wide:true})}
+      ${tile('Outlet Code', o.outlet_code, {mono:true})}
+      ${tile('Food Court', fcL)}
+      ${tile('Customer Type', o.customer_type)}
+    </div>
+
+    <div class="section-head">Org &amp; Ownership</div>
+    <div class="info-grid">
+      ${tile('Registered Entity', o.entity)}
+      ${tile('Entity Short Code', o.entity_short, {mono:true})}
+      ${tile('Manager (L4)', o.manager)}
+    </div>
+
+    <div class="section-head">Compliance &amp; Contact</div>
+    <div class="info-grid">
+      ${tile('SFA Number', o.sfa_number, {mono:true})}
+      ${tile('Accounts Email', o.acc_email)}
+      ${tile('Open Date', o.open_date)}
+      ${tile('Close Date', o.close_date)}
+    </div>
+
+    ${renderFutureCards()}
+  `;
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  fetchData(true).then(ok => { if (ok) renderList(); });
+});
+</script>
+</body>
+</html>
