@@ -108,7 +108,15 @@ main{flex:1;padding:24px 28px 60px;max-width:1300px;width:100%}
 .outlet-table th{
   padding:9px 12px;text-align:left;font-size:.66rem;font-weight:700;
   text-transform:uppercase;letter-spacing:.6px;color:#9ca3af;white-space:nowrap;
+  cursor:pointer;user-select:none;transition:color .1s;
 }
+.outlet-table th:hover{color:#374151}
+.outlet-table th.sorted{color:#2563eb}
+.outlet-table th .arrow{display:inline-block;margin-left:4px;font-size:.7rem;opacity:.4}
+.outlet-table th.sorted .arrow{opacity:1}
+.outlet-table th.no-sort{cursor:default}
+.outlet-table th.no-sort:hover{color:#9ca3af}
+.outlet-table th.no-sort .arrow{display:none}
 .outlet-table tbody tr{border-bottom:1px solid #f1f5f9;cursor:pointer;transition:background .1s}
 .outlet-table tbody tr:hover{background:#eff6ff}
 .outlet-table tbody tr:last-child{border-bottom:none}
@@ -282,6 +290,26 @@ function parseCSV(text){
 let OUTLETS = [];
 let STATUS = 'active';
 let SELECTED_MGR = null;
+let SORT_KEY = 'default';   // 'default' = operating-first then brand then code
+let SORT_DIR = 1;
+
+const MONTHS = {Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};
+function dateKey(s){
+  if (!s) return '';
+  const m = s.match(/^(\d{1,2})-(\w{3})-(\d{2,4})$/);
+  if (!m) return '';
+  const day = m[1].padStart(2,'0');
+  const mon = MONTHS[m[2]] || '00';
+  let year = parseInt(m[3], 10);
+  if (year < 100) year += year < 70 ? 2000 : 1900;
+  return `${year}-${mon}-${day}`;
+}
+
+function sortBy(key){
+  if (SORT_KEY === key) SORT_DIR *= -1;
+  else { SORT_KEY = key; SORT_DIR = 1; }
+  renderManagerDetail();
+}
 
 async function fetchData(showOverlay){
   const overlay = document.getElementById('loadingOverlay');
@@ -456,12 +484,31 @@ function renderManagerDetail(){
   const total = mgrOutlets.length;
   const brandMix = Object.entries(brandCounts).sort((a,b)=>b[1]-a[1]);
 
-  // Sort outlets: operating first, then by brand, then code
-  const sorted = [...mgrOutlets].sort((a,b) =>
-    (a.operating === b.operating ? 0 : a.operating ? -1 : 1) ||
-    a.brand.localeCompare(b.brand) ||
-    a.outlet_code.localeCompare(b.outlet_code)
-  );
+  // Sort outlets per current SORT_KEY / SORT_DIR
+  const sorted = [...mgrOutlets].sort((a,b) => {
+    if (SORT_KEY === 'default'){
+      return (a.operating === b.operating ? 0 : a.operating ? -1 : 1)
+          || a.brand.localeCompare(b.brand)
+          || a.outlet_code.localeCompare(b.outlet_code);
+    }
+    let av, bv;
+    if (SORT_KEY === 'open_date'){ av = dateKey(a.open_date); bv = dateKey(b.open_date); }
+    else if (SORT_KEY === 'close_date'){ av = dateKey(a.close_date); bv = dateKey(b.close_date); }
+    else if (SORT_KEY === 'operating'){ av = a.operating ? 0 : 1; bv = b.operating ? 0 : 1; }
+    else { av = (a[SORT_KEY] || '').toString().toLowerCase(); bv = (b[SORT_KEY] || '').toString().toLowerCase(); }
+    // Push empty values to bottom regardless of direction
+    if (av === '' && bv !== '') return 1;
+    if (bv === '' && av !== '') return -1;
+    if (av < bv) return -SORT_DIR;
+    if (av > bv) return SORT_DIR;
+    return a.outlet_code.localeCompare(b.outlet_code);
+  });
+
+  function arr(key){
+    if (SORT_KEY !== key) return '<span class="arrow">&#8597;</span>';
+    return SORT_DIR > 0 ? '<span class="arrow">&#9650;</span>' : '<span class="arrow">&#9660;</span>';
+  }
+  function thCls(key){ return SORT_KEY === key ? 'sorted' : ''; }
 
   content.innerHTML = `
     <div class="hero">
@@ -491,14 +538,14 @@ function renderManagerDetail(){
       <div class="tbl-scroll">
         <table class="outlet-table">
           <thead><tr>
-            <th>S/N</th>
-            <th>Code</th>
-            <th>Brand</th>
-            <th>Sub-brand</th>
-            <th>Food Court</th>
-            <th>Open Date</th>
-            <th>Close Date</th>
-            <th>Status</th>
+            <th class="no-sort">S/N</th>
+            <th class="${thCls('outlet_code')}" onclick="sortBy('outlet_code')">Code ${arr('outlet_code')}</th>
+            <th class="${thCls('brand')}" onclick="sortBy('brand')">Brand ${arr('brand')}</th>
+            <th class="${thCls('sub_brand')}" onclick="sortBy('sub_brand')">Sub-brand ${arr('sub_brand')}</th>
+            <th class="${thCls('food_court')}" onclick="sortBy('food_court')">Food Court ${arr('food_court')}</th>
+            <th class="${thCls('open_date')}" onclick="sortBy('open_date')">Open Date ${arr('open_date')}</th>
+            <th class="${thCls('close_date')}" onclick="sortBy('close_date')">Close Date ${arr('close_date')}</th>
+            <th class="${thCls('operating')}" onclick="sortBy('operating')">Status ${arr('operating')}</th>
           </tr></thead>
           <tbody>
             ${sorted.map((o, i) => {
