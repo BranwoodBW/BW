@@ -97,6 +97,19 @@
       letter-spacing: 0.3px;
     }
 
+    .badge.live {
+      background: rgba(74,222,128,0.08);
+      color: #4ade80;
+      border-color: rgba(74,222,128,0.22);
+      display: inline-flex; align-items: center; gap: 6px;
+      font-variant-numeric: tabular-nums;
+    }
+    .badge.live .live-dot { width: 6px; height: 6px; }
+    .badge.live b { font-weight: 700; color: #fff; }
+    .badge.live span.sep { opacity: 0.4; margin: 0 2px; }
+    .badge.live.loading b { color: var(--muted); }
+    .badge.live.error { background: rgba(244,63,94,0.08); color: #f87171; border-color: rgba(244,63,94,0.22); }
+
     /* ── Columns ── */
     .columns {
       flex: 1;
@@ -292,6 +305,10 @@
     </div>
     <div class="header-right">
       <div class="clock" id="clock"></div>
+      <div class="badge live loading" id="liveBadge" title="Live from CTM sheet">
+        <span class="live-dot"></span>
+        <span><b id="liveOutletCount">--</b> outlets <span class="sep">&middot;</span> <span id="liveStamp">loading</span></span>
+      </div>
       <div class="badge">Internal Use Only</div>
     </div>
   </header>
@@ -316,6 +333,27 @@
         <div class="live-dot"></div>
         <div class="card-arrow">→</div>
       </a>
+
+      <a class="card cyan" href="outlet-drilldown.html">
+        <div class="card-glow"></div>
+        <div class="card-icon">🔍</div>
+        <div class="card-body">
+          <div class="card-title">Outlet Drill-down</div>
+          <div class="card-sub">Per-outlet detail view</div>
+        </div>
+        <div class="live-dot"></div>
+        <div class="card-arrow">→</div>
+      </a>
+
+      <div class="card purple coming-soon">
+        <div class="card-glow"></div>
+        <div class="card-icon">👔</div>
+        <div class="card-body">
+          <div class="card-title">Manager Drill-down</div>
+          <div class="card-sub">Per-manager portfolio view</div>
+        </div>
+        <div class="card-arrow">→</div>
+      </div>
     </div>
 
     <!-- Sales & Revenue -->
@@ -346,6 +384,16 @@
         <div class="live-dot"></div>
         <div class="card-arrow">→</div>
       </a>
+
+      <div class="card cyan coming-soon">
+        <div class="card-glow"></div>
+        <div class="card-icon">📖</div>
+        <div class="card-body">
+          <div class="card-title">Menu Masterlist</div>
+          <div class="card-sub">Internal + GF + FP merged</div>
+        </div>
+        <div class="card-arrow">→</div>
+      </div>
     </div>
 
     <!-- Delivery Platforms -->
@@ -384,6 +432,16 @@
         <div class="live-dot"></div>
         <div class="card-arrow">→</div>
       </a>
+
+      <div class="card purple coming-soon">
+        <div class="card-glow"></div>
+        <div class="card-icon">📈</div>
+        <div class="card-body">
+          <div class="card-title">Marketing Effectiveness</div>
+          <div class="card-sub">Promo &amp; campaign uplift</div>
+        </div>
+        <div class="card-arrow">→</div>
+      </div>
     </div>
 
   </div><!-- /columns -->
@@ -404,6 +462,59 @@
   }
   updateClock();
   setInterval(updateClock, 10000);
+
+  // Live outlet count from CTM sheet (same source as Outlet Dashboard)
+  // Filter: M (col 12) != EX, W (col 22) + P (col 15) filled, O (col 14) filled, Z (col 25) == Y
+  const CTM_CSV = 'https://docs.google.com/spreadsheets/d/1HFm4S3QvJOG4u_pE8U9D8JSqwuX2Cs8qt9MHpzLsnbs/export?format=csv&gid=408242429';
+
+  function parseCSV(text) {
+    const rows = []; let cur = '', row = [], inQ = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (c === '"') {
+        if (inQ && text[i+1] === '"') { cur += '"'; i++; }
+        else { inQ = !inQ; }
+      } else if (c === ',' && !inQ) { row.push(cur); cur = ''; }
+      else if ((c === '\n' || c === '\r') && !inQ) {
+        if (c === '\r' && text[i+1] === '\n') i++;
+        row.push(cur); cur = '';
+        if (row.length > 1 || row[0] !== '') rows.push(row);
+        row = [];
+      } else { cur += c; }
+    }
+    if (cur.length || row.length) { row.push(cur); rows.push(row); }
+    return rows;
+  }
+
+  async function loadOutletCount() {
+    const badge = document.getElementById('liveBadge');
+    const countEl = document.getElementById('liveOutletCount');
+    const stampEl = document.getElementById('liveStamp');
+    try {
+      const r = await fetch(CTM_CSV + '&_=' + Date.now(), { credentials: 'omit' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const text = await r.text();
+      const rows = parseCSV(text);
+      let active = 0;
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        if (r.length < 32) continue;
+        if ((r[12] || '').trim().toUpperCase() === 'EX') continue;
+        if (!(r[22] || '').trim() || !(r[15] || '').trim() || !(r[14] || '').trim()) continue;
+        if ((r[25] || '').trim().toUpperCase() === 'Y') active++;
+      }
+      countEl.textContent = active;
+      stampEl.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      badge.classList.remove('loading');
+    } catch (err) {
+      console.error(err);
+      countEl.textContent = '?';
+      stampEl.textContent = 'fetch failed';
+      badge.classList.remove('loading');
+      badge.classList.add('error');
+    }
+  }
+  loadOutletCount();
 </script>
 
 </body>
