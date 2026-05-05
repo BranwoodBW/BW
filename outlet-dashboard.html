@@ -3,22 +3,13 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Branwood Group — Outlet Dashboard</title>
-<!-- Chart.js -->
+<title>Branwood Group — Outlet Dashboard (Live)</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<!-- Leaflet -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<!-- Marker Cluster -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css"/>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.min.css"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <style>
-/* ══ RESET ══ */
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f2f7;color:#1a1d2e}
 
-/* ══ HEADER ══ */
 header{
   background:linear-gradient(130deg,#1a1d2e 0%,#2e3562 100%);
   color:#fff;padding:18px 28px;
@@ -34,7 +25,17 @@ header p{font-size:.76rem;color:#a5b4fc;margin-top:2px}
 .hdr-stat strong{display:block;font-size:1.5rem;font-weight:700;line-height:1}
 .hdr-stat span{font-size:.72rem;color:#c7d2fe}
 
-/* ══ TABS ══ */
+.btn-refresh{
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);
+  color:#fff;padding:8px 14px;border-radius:8px;font-size:.8rem;font-weight:600;
+  cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background .15s;
+}
+.btn-refresh:hover:not(:disabled){background:rgba(255,255,255,.2)}
+.btn-refresh:disabled{opacity:.6;cursor:not-allowed}
+.btn-refresh.spinning svg{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.refresh-meta{font-size:.7rem;color:#c7d2fe;margin-top:4px;text-align:right}
+
 .tab-bar{
   background:#fff;border-bottom:2px solid #e5e9f0;
   display:flex;gap:0;flex-shrink:0;padding:0 28px;
@@ -47,12 +48,10 @@ header p{font-size:.76rem;color:#a5b4fc;margin-top:2px}
 .tab-btn:hover{color:#374151}
 .tab-btn.active{color:#2563eb;border-bottom-color:#2563eb}
 
-/* ══ PANELS ══ */
 .panel{display:none;flex-direction:column;flex:1;overflow:hidden}
 .panel.active{display:flex}
 .panel-scroll{overflow-y:auto;padding:24px 28px 32px;flex:1}
 
-/* ══ KPI GRID ══ */
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:24px}
 .kpi{
   background:#fff;border:1px solid #e5e9f0;border-radius:12px;
@@ -64,7 +63,6 @@ header p{font-size:.76rem;color:#a5b4fc;margin-top:2px}
 .kpi-sub{font-size:.73rem;color:#9ca3af}
 .kpi-ico{position:absolute;right:16px;top:14px;font-size:1.6rem;opacity:.1}
 
-/* ══ CHARTS ══ */
 .charts-grid{display:grid;grid-template-columns:2fr 1fr 1.3fr;gap:18px;margin-bottom:8px}
 @media(max-width:1080px){.charts-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:680px){.charts-grid{grid-template-columns:1fr}}
@@ -72,7 +70,6 @@ header p{font-size:.76rem;color:#a5b4fc;margin-top:2px}
 .chart-card h3{font-size:.73rem;text-transform:uppercase;letter-spacing:.6px;color:#9ca3af;font-weight:700;margin-bottom:14px}
 .chart-wrap{position:relative;height:210px}
 
-/* ══ FILTER BAR ══ */
 .filter-bar{
   background:#fff;border:1px solid #e5e9f0;border-radius:12px;
   padding:14px 20px;margin-bottom:16px;
@@ -87,6 +84,18 @@ header p{font-size:.76rem;color:#a5b4fc;margin-top:2px}
 .fg input{min-width:210px}
 .fg select{min-width:140px}
 .fg select:focus,.fg input:focus{border-color:#2563eb}
+.toggle{display:flex;align-items:center;gap:6px;font-size:.78rem;color:#374151;cursor:pointer;user-select:none}
+.toggle input{cursor:pointer}
+
+.pill-group{display:inline-flex;border:1px solid #e5e9f0;border-radius:8px;overflow:hidden;background:#fff}
+.pill-group .pill{
+  border:none;background:none;padding:6px 14px;font-size:.78rem;font-weight:600;color:#6b7280;
+  cursor:pointer;border-right:1px solid #e5e9f0;transition:background .15s,color .15s;
+}
+.pill-group .pill:last-child{border-right:none}
+.pill-group .pill:hover{background:#f8fafc;color:#374151}
+.pill-group .pill.active{background:#2563eb;color:#fff}
+.pill-group .pill.active:hover{background:#1d4ed8}
 .btn-reset{
   border:1px solid #e5e9f0;border-radius:7px;padding:6px 14px;
   font-size:.8rem;color:#9ca3af;background:none;cursor:pointer;align-self:flex-end;
@@ -95,7 +104,6 @@ header p{font-size:.76rem;color:#a5b4fc;margin-top:2px}
 .res-count{margin-left:auto;align-self:flex-end;font-size:.8rem;color:#9ca3af}
 .res-count b{color:#374151}
 
-/* ══ TABLE ══ */
 .tbl-wrap{background:#fff;border:1px solid #e5e9f0;border-radius:12px;overflow:hidden}
 .tbl-scroll{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:.82rem}
@@ -110,13 +118,19 @@ th.sorted{color:#2563eb}
 tbody tr{border-bottom:1px solid #f1f5f9;transition:background .1s}
 tbody tr:hover{background:#f8fafc}
 tbody tr:last-child{border-bottom:none}
+tbody tr.closed{opacity:.55}
 td{padding:10px 14px;vertical-align:middle}
-.td-code{font-family:'SF Mono','Fira Code',monospace;font-size:.78rem;font-weight:700;color:#374151}
-.td-addr{font-size:.75rem;color:#9ca3af;max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.td-co{font-size:.75rem;color:#9ca3af;max-width:190px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.td-code{font-family:'SF Mono','Fira Code',monospace;font-size:.78rem;font-weight:700;color:#374151;white-space:nowrap}
+.td-sn{font-family:'SF Mono','Fira Code',monospace;font-size:.74rem;color:#9ca3af;white-space:nowrap}
+.td-addr{font-size:.75rem;color:#374151;line-height:1.45;white-space:normal;word-break:break-word}
+.td-co{font-size:.75rem;color:#374151;white-space:normal;word-break:break-word}
 .no-res{text-align:center;padding:50px 20px;color:#9ca3af;font-size:.88rem}
+table tbody td{user-select:text}
 
-/* ══ BADGES ══ */
+.status-pill{font-size:.65rem;font-weight:700;padding:2px 7px;border-radius:4px}
+.s-op{background:#dcfce7;color:#166534}
+.s-cl{background:#fee2e2;color:#991b1b}
+
 .badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:.7rem;font-weight:700;white-space:nowrap}
 .b-sea{background:#dbeafe;color:#1d4ed8}
 .b-haus{background:#ffedd5;color:#9a3412}
@@ -137,104 +151,156 @@ td{padding:10px 14px;vertical-align:middle}
 
 .mgr{font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:4px;background:#f1f5f9;color:#374151}
 
-/* ══ MAP ══ */
-#map-container{display:flex;flex-direction:column;height:100%;min-height:0}
-.map-toolbar{
-  background:#fff;border-bottom:1px solid #e5e9f0;
-  padding:10px 20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;flex-shrink:0;
+/* Per-column filters under table headers */
+thead tr.col-filters th{
+  padding:6px 10px;background:#fff;border-bottom:1px solid #e5e9f0;
+  font-weight:400;text-transform:none;letter-spacing:0;
 }
-.map-toolbar .fg label{font-size:.68rem}
-.map-toolbar .fg select{min-width:130px;font-size:.81rem}
-.map-badge{margin-left:auto;background:#f0f2f7;color:#6b7280;font-size:.78rem;padding:4px 12px;border-radius:20px}
-#leaflet-map{flex:1;min-height:0}
-
-/* Leaflet popup */
-.leaflet-popup-content-wrapper{border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.14)}
-.leaflet-popup-content{margin:12px 15px;min-width:200px}
-.pop-code{font-size:13px;font-weight:700;color:#1a1d2e;margin-bottom:2px}
-.pop-brand{font-size:12px;font-weight:600;margin-bottom:6px}
-.pop-row{font-size:11px;color:#6b7280;margin-bottom:3px}
-.pop-addr{font-size:11px;color:#9ca3af;margin-top:6px;line-height:1.5}
-
-/* Leaflet legend */
-.map-legend{
-  background:#fff;border-radius:10px;padding:11px 13px;
-  box-shadow:0 2px 12px rgba(0,0,0,.12);font-size:11px;
-  max-height:260px;overflow-y:auto;
+thead tr.col-filters input,
+thead tr.col-filters select{
+  width:100%;padding:4px 8px;font-size:.76rem;border:1px solid #e5e9f0;border-radius:6px;
+  color:#1a1d2e;outline:none;background:#fff;
 }
-.map-legend b{display:block;color:#1a1d2e;margin-bottom:7px;font-size:12px}
-.leg-row{display:flex;align-items:center;gap:7px;margin-bottom:4px;color:#374151}
-.leg-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+thead tr.col-filters input:focus,
+thead tr.col-filters select:focus{border-color:#2563eb}
+
+/* Opens/Closes timeline (Overview) */
+.tl-card{background:#fff;border:1px solid #e5e9f0;border-radius:12px;padding:18px 22px}
+.tl-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px}
+.tl-head h3{font-size:.73rem;text-transform:uppercase;letter-spacing:.6px;color:#9ca3af;font-weight:700}
+.tl-table{width:100%;border-collapse:collapse;font-size:.82rem}
+.tl-table th{padding:8px 10px;text-align:right;font-size:.68rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid #e5e9f0}
+.tl-table th:first-child{text-align:left}
+.tl-table td{padding:8px 10px;text-align:right;border-bottom:1px solid #f1f5f9}
+.tl-table td:first-child{text-align:left;font-weight:700;color:#374151;font-family:'SF Mono','Fira Code',monospace;font-size:.78rem}
+.tl-table tr.tl-total{background:#f8fafc;font-weight:700}
+.tl-table tr.tl-total td{border-top:2px solid #e5e9f0;color:#1a1d2e}
+.tl-bar{display:inline-block;height:8px;background:#dcfce7;border-radius:4px;vertical-align:middle;margin-left:6px}
+.tl-bar.cl{background:#fee2e2}
+
+/* Data health tab */
+.dh-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:18px}
+.dh-card{background:#fff;border:1px solid #e5e9f0;border-radius:10px;padding:14px 18px}
+.dh-card.bad{border-left:4px solid #dc2626}
+.dh-card.warn{border-left:4px solid #d97706}
+.dh-card.ok{border-left:4px solid #16a34a}
+.dh-card-label{font-size:.69rem;text-transform:uppercase;letter-spacing:.6px;color:#9ca3af;font-weight:600}
+.dh-card-val{font-size:1.6rem;font-weight:700;margin:4px 0 0;line-height:1}
+.dh-card-sub{font-size:.7rem;color:#9ca3af;margin-top:2px}
+.dh-flag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:.65rem;font-weight:700;margin-right:4px;background:#fee2e2;color:#991b1b}
+.dh-flag.warn{background:#fef3c7;color:#78350f}
+
+#loadingOverlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);
+  color:#fff;font-size:1.05rem;font-weight:500;
+  align-items:center;justify-content:center;z-index:9999;
+}
+#loadingOverlay.show{display:flex}
+
+.error-banner{
+  background:#fee2e2;color:#991b1b;border:1px solid #fecaca;
+  border-radius:8px;padding:12px 16px;margin:16px 28px 0;font-size:.85rem;
+}
 </style>
 </head>
 <body style="display:flex;flex-direction:column;height:100%;overflow:hidden">
 
-<!-- HEADER -->
+<div id="loadingOverlay">Fetching CTM sheet...</div>
+
 <header>
   <div>
-    <h1>🍜 Branwood Group</h1>
-    <p>Outlet Operations Dashboard · CTM Sheet · April 2026</p>
+    <h1>Branwood Group</h1>
+    <p>Outlet Operations Dashboard - CTM Sheet (Live)</p>
   </div>
-  <div style="display:flex;gap:10px;flex-wrap:wrap">
-    <div class="hdr-stat"><strong id="hdr-total">—</strong><span>Operating Outlets</span></div>
-    <div class="hdr-stat"><strong id="hdr-brands">—</strong><span>Brands</span></div>
-    <div class="hdr-stat"><strong id="hdr-mgrs">—</strong><span>Field Managers</span></div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <div class="hdr-stat"><strong id="hdr-total">-</strong><span>Operating Outlets</span></div>
+    <div class="hdr-stat"><strong id="hdr-brands">-</strong><span>Brands</span></div>
+    <div class="hdr-stat"><strong id="hdr-mgrs">-</strong><span>Field Managers</span></div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+      <button class="btn-refresh" id="refreshBtn" onclick="refreshData()">
+        <svg id="refreshIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Refresh
+      </button>
+      <span class="refresh-meta" id="refreshMeta">-</span>
+    </div>
   </div>
 </header>
 
-<!-- TAB BAR -->
+<div id="errorBanner" class="error-banner" style="display:none"></div>
+
 <nav class="tab-bar">
-  <button class="tab-btn active" onclick="switchTab('overview',this)">📊 Overview</button>
-  <button class="tab-btn" onclick="switchTab('outlets',this)">📋 Outlets</button>
-  <button class="tab-btn" onclick="switchTab('map',this)">🗺️ Map</button>
+  <button class="tab-btn active" onclick="switchTab('overview',this)">Overview</button>
+  <button class="tab-btn" onclick="switchTab('outlets',this)">Outlets</button>
+  <button class="tab-btn" onclick="switchTab('companies',this)">Companies</button>
+  <button class="tab-btn" onclick="switchTab('health',this)">Data Health</button>
 </nav>
 
-<!-- ═══════════ OVERVIEW PANEL ═══════════ -->
 <div class="panel active" id="panel-overview">
   <div class="panel-scroll">
     <div class="kpi-grid" id="kpi-grid">
-      <div class="kpi" style="--c:#2563eb"><div class="kpi-ico">🏪</div><div class="kpi-label">Total Outlets</div><div class="kpi-val" id="k-total">—</div><div class="kpi-sub">Operating (Y)</div></div>
-      <div class="kpi" style="--c:#16a34a"><div class="kpi-ico">🏷️</div><div class="kpi-label">Brands</div><div class="kpi-val" id="k-brands">—</div><div class="kpi-sub">Unique main brands</div></div>
-      <div class="kpi" style="--c:#d97706"><div class="kpi-ico">👔</div><div class="kpi-label">Field Managers</div><div class="kpi-val" id="k-mgrs">—</div><div class="kpi-sub">Excl. CK / IHQ</div></div>
-      <div class="kpi" style="--c:#7c3aed"><div class="kpi-ico">🏢</div><div class="kpi-label">Food Courts</div><div class="kpi-val" id="k-fc">—</div><div class="kpi-sub">KPT · Koufu · FP · OTH</div></div>
-      <div class="kpi" style="--c:#0e7490"><div class="kpi-ico">🏛️</div><div class="kpi-label">Legal Entities</div><div class="kpi-val" id="k-co">—</div><div class="kpi-sub">Registered companies</div></div>
+      <div class="kpi" style="--c:#2563eb"><div class="kpi-ico">[O]</div><div class="kpi-label">Total Outlets</div><div class="kpi-val" id="k-total">-</div><div class="kpi-sub">Operating (Z=Y)</div></div>
+      <div class="kpi" style="--c:#16a34a"><div class="kpi-ico">[B]</div><div class="kpi-label">Brands</div><div class="kpi-val" id="k-brands">-</div><div class="kpi-sub">Unique main brands</div></div>
+      <div class="kpi" style="--c:#d97706"><div class="kpi-ico">[M]</div><div class="kpi-label">Field Managers</div><div class="kpi-val" id="k-mgrs">-</div><div class="kpi-sub">Excl. CK / IHQ / HQO</div></div>
+      <div class="kpi" style="--c:#7c3aed"><div class="kpi-ico">[F]</div><div class="kpi-label">Food Courts</div><div class="kpi-val" id="k-fc">-</div><div class="kpi-sub">KPT / KOUFU / FJ / OTH</div></div>
+      <div class="kpi" style="--c:#0e7490"><div class="kpi-ico">[E]</div><div class="kpi-label">Legal Entities</div><div class="kpi-val" id="k-co">-</div><div class="kpi-sub">Registered companies</div></div>
     </div>
     <div class="charts-grid">
       <div class="chart-card"><h3>Outlets by Brand</h3><div class="chart-wrap"><canvas id="cBrand"></canvas></div></div>
       <div class="chart-card"><h3>By Food Court</h3><div class="chart-wrap"><canvas id="cFC"></canvas></div></div>
       <div class="chart-card"><h3>By Manager</h3><div class="chart-wrap"><canvas id="cMgr"></canvas></div></div>
     </div>
+    <div class="tl-card" style="margin-top:18px">
+      <div class="tl-head">
+        <h3>Openings &amp; Closures by Year</h3>
+        <div class="pill-group" id="tlPills">
+          <button class="pill" data-val="active" onclick="setStatusFilter('timeline','active')">Active only</button>
+          <button class="pill" data-val="inactive" onclick="setStatusFilter('timeline','inactive')">Closed only</button>
+          <button class="pill active" data-val="both" onclick="setStatusFilter('timeline','both')">Both</button>
+        </div>
+      </div>
+      <table class="tl-table" id="tlTable"></table>
+    </div>
   </div>
 </div>
 
-<!-- ═══════════ OUTLETS PANEL ═══════════ -->
 <div class="panel" id="panel-outlets">
   <div class="panel-scroll">
     <div class="filter-bar">
-      <div class="fg"><label>Search</label><input id="fSearch" type="text" placeholder="Code, brand, address…" oninput="applyFilters()"/></div>
+      <div class="fg"><label>Search</label><input id="fSearch" type="text" placeholder="Code, brand, address, manager..." oninput="applyFilters()"/></div>
       <div class="fg"><label>Brand</label><select id="fBrand" onchange="applyFilters()"><option value="">All Brands</option></select></div>
       <div class="fg"><label>Food Court</label><select id="fFC" onchange="applyFilters()">
         <option value="">All</option>
         <option value="KPT">Kopitiam</option>
         <option value="KOUFU">Koufu</option>
-        <option value="FJ">FairPrice / Junctions</option>
+        <option value="FJ">Food Junction</option>
         <option value="OTH">Others</option>
       </select></div>
       <div class="fg"><label>Manager</label><select id="fMgr" onchange="applyFilters()"><option value="">All Managers</option></select></div>
-      <button class="btn-reset" onclick="resetFilters()">✕ Reset</button>
-      <div class="res-count">Showing <b id="resCount">—</b> outlets</div>
+      <div class="fg"><label>Status</label>
+        <div class="pill-group" id="outletsPills">
+          <button class="pill active" data-val="active" onclick="setStatusFilter('outlets','active')">Active</button>
+          <button class="pill" data-val="inactive" onclick="setStatusFilter('outlets','inactive')">Inactive</button>
+          <button class="pill" data-val="both" onclick="setStatusFilter('outlets','both')">Both</button>
+        </div>
+      </div>
+      <button class="btn-reset" onclick="resetFilters()">Reset</button>
+      <div class="res-count">Showing <b id="resCount">-</b> outlets</div>
     </div>
     <div class="tbl-wrap">
       <div class="tbl-scroll">
         <table>
           <thead><tr>
-            <th onclick="sortBy('code',this)">Code <span>↕</span></th>
-            <th onclick="sortBy('brand',this)">Brand <span>↕</span></th>
-            <th onclick="sortBy('subBrand',this)">Sub-brand <span>↕</span></th>
-            <th onclick="sortBy('fc',this)">Food Court <span>↕</span></th>
-            <th onclick="sortBy('manager',this)">Manager <span>↕</span></th>
-            <th onclick="sortBy('company',this)">Company <span>↕</span></th>
+            <th>S/N</th>
+            <th onclick="sortBy('outlet_code',this)">Code</th>
+            <th onclick="sortBy('brand',this)">Brand</th>
+            <th onclick="sortBy('sub_brand',this)">Sub-brand</th>
+            <th onclick="sortBy('food_court',this)">Food Court</th>
+            <th onclick="sortBy('manager',this)">Manager</th>
+            <th onclick="sortBy('entity',this)">Company</th>
             <th>Address</th>
+            <th onclick="sortBy('open_date',this)">Open Date</th>
+            <th onclick="sortBy('close_date',this)">Close Date</th>
+            <th onclick="sortBy('operating',this)">Status</th>
           </tr></thead>
           <tbody id="tblBody"></tbody>
         </table>
@@ -244,124 +310,143 @@ td{padding:10px 14px;vertical-align:middle}
   </div>
 </div>
 
-<!-- ═══════════ MAP PANEL ═══════════ -->
-<div class="panel" id="panel-map">
-  <div id="map-container">
-    <div class="map-toolbar">
-      <div class="fg"><label>Brand</label><select id="mBrand" onchange="renderMap()"><option value="">All Brands</option></select></div>
-      <div class="fg"><label>Manager</label><select id="mMgr" onchange="renderMap()"><option value="">All Managers</option></select></div>
-      <div class="fg"><label>Food Court</label><select id="mFC" onchange="renderMap()">
-        <option value="">All</option>
-        <option value="KPT">Kopitiam</option>
-        <option value="KOUFU">Koufu</option>
-        <option value="FJ">FairPrice / Junctions</option>
-        <option value="OTH">Others</option>
-      </select></div>
-      <span class="map-badge" id="mapBadge">— outlets</span>
+<div class="panel" id="panel-companies">
+  <div class="panel-scroll">
+    <div class="filter-bar">
+      <div class="fg"><label>Status</label>
+        <div class="pill-group" id="coPills">
+          <button class="pill active" data-val="active" onclick="setStatusFilter('companies','active')">Active</button>
+          <button class="pill" data-val="inactive" onclick="setStatusFilter('companies','inactive')">Inactive</button>
+          <button class="pill" data-val="both" onclick="setStatusFilter('companies','both')">Both</button>
+        </div>
+      </div>
+      <button class="btn-reset" onclick="resetCompanyFilters()">Reset</button>
+      <div class="res-count">Showing <b id="coCount">-</b> entities</div>
     </div>
-    <div id="leaflet-map"></div>
+    <div class="tbl-wrap">
+      <div class="tbl-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th onclick="sortCompanies('entity',this)">Company</th>
+              <th onclick="sortCompanies('entity_short',this)">Short</th>
+              <th onclick="sortCompanies('operating_count',this)">Operating</th>
+              <th onclick="sortCompanies('closed_count',this)">Closed</th>
+              <th onclick="sortCompanies('brand_count',this)">Brands</th>
+              <th>Brand list</th>
+              <th>Outlet codes</th>
+            </tr>
+            <tr class="col-filters">
+              <th><input type="text" id="coF_entity" placeholder="Filter..." oninput="renderCompanies()"/></th>
+              <th><input type="text" id="coF_short" placeholder="Filter..." oninput="renderCompanies()"/></th>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th><select id="coF_brand" onchange="renderCompanies()"><option value="">All</option></select></th>
+              <th><input type="text" id="coF_codes" placeholder="Filter..." oninput="renderCompanies()"/></th>
+            </tr>
+          </thead>
+          <tbody id="coBody"></tbody>
+        </table>
+        <div class="no-res" id="coNoRes" style="display:none">No companies match the current filters.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="panel" id="panel-health">
+  <div class="panel-scroll">
+    <div class="dh-summary" id="dhSummary"></div>
+    <div class="filter-bar">
+      <div class="fg"><label>Show outlets missing</label>
+        <select id="dhField" onchange="renderHealth()">
+          <option value="any">Any field</option>
+          <option value="address">Address</option>
+          <option value="sfa_number">SFA Number</option>
+          <option value="acc_email">Acc Email</option>
+          <option value="open_date">Open Date</option>
+        </select>
+      </div>
+      <div class="fg"><label>Status</label>
+        <div class="pill-group" id="dhPills">
+          <button class="pill active" data-val="active" onclick="setStatusFilter('health','active')">Active</button>
+          <button class="pill" data-val="inactive" onclick="setStatusFilter('health','inactive')">Inactive</button>
+          <button class="pill" data-val="both" onclick="setStatusFilter('health','both')">Both</button>
+        </div>
+      </div>
+      <div class="res-count"><b id="dhCount">-</b> outlets flagged</div>
+    </div>
+    <div class="tbl-wrap">
+      <div class="tbl-scroll">
+        <table>
+          <thead><tr>
+            <th>Code</th><th>Brand</th><th>Manager</th><th>Food Court</th><th>Status</th><th>Missing fields</th>
+          </tr></thead>
+          <tbody id="dhBody"></tbody>
+        </table>
+        <div class="no-res" id="dhNoRes" style="display:none">All outlets pass this check.</div>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
-// ══════════════════════════════════════════════
-// DATA  — 70 operating outlets with coordinates
-// ══════════════════════════════════════════════
-const OUTLETS = [
-  {code:"CK-KFK03",  brand:"CK",                       subBrand:"",                           fc:"",     manager:"CK",      company:"CK-KFK03",                       address:"1 Woodlands Height",                            lat:1.4284, lng:103.7992},
-  {code:"CK-KFK06",  brand:"CK",                       subBrand:"",                           fc:"",     manager:"CK",      company:"CK-KFK06",                       address:"1 Woodlands Height",                            lat:1.4285, lng:103.7993},
-  {code:"CK-KFK18",  brand:"CK",                       subBrand:"",                           fc:"",     manager:"CK",      company:"CK-KFK18",                       address:"1 Woodlands Height",                            lat:1.4286, lng:103.7994},
-  {code:"AM01",      brand:"SEABAY DELIGHT",            subBrand:"",                           fc:"KPT",  manager:"ALEX",    company:"SEABAY DELIGHTS PTE LTD",        address:"678A Woodlands Avenue 6, #02-05",               lat:1.4403, lng:103.8013},
-  {code:"AM02",      brand:"HAUS BAN MIAN",             subBrand:"Haus Ban Mian & Fish Soup",  fc:"KPT",  manager:"ALEX",    company:"HAUS BAN MIAN PTE LTD",          address:"678A Woodlands Avenue 6, #02-05",               lat:1.4404, lng:103.8014},
-  {code:"AS13-2",    brand:"SPINACH CHEF",              subBrand:"",                           fc:"OTH",  manager:"RU",      company:"HAO JIA PTE LTD",                address:"12 Marina View, Asia Square Tower 2",           lat:1.2796, lng:103.8574},
-  {code:"C88",       brand:"ALI'S FRY & GRILL",         subBrand:"",                           fc:"KOUFU",manager:"PHILIP",  company:"WESMA FOOD PTE LTD",             address:"88 Tanglin Halt Road",                          lat:1.3038, lng:103.8001},
-  {code:"CCP02",     brand:"SEABAY DELIGHT",            subBrand:"Seabay Wok Delight",         fc:"OTH",  manager:"AD",      company:"SEABAY WOK DELIGHTS II PTE LTD", address:"5 Changi Business Park Central 1",              lat:1.3344, lng:103.9638},
-  {code:"COM04-1",   brand:"HAO JIA BAN MIAN",          subBrand:"",                           fc:"KPT",  manager:"IHQ",     company:"HAO JIA PTE LTD",                address:"1 Sengkang Square #04-11",                      lat:1.3920, lng:103.8952},
-  {code:"CP02",      brand:"SPINACH CHEF",              subBrand:"",                           fc:"FJ",   manager:"YUANHUI", company:"SPINACH CHEF PTE LTD",           address:"1 Woodlands Square #04-01/02/03/04",            lat:1.4369, lng:103.7862},
-  {code:"CWP05",     brand:"SEABAY DELIGHT",            subBrand:"",                           fc:"KPT",  manager:"ALEX",    company:"SEABAY DELIGHTS PTE LTD",        address:"1 Woodlands Square",                            lat:1.4370, lng:103.7863},
-  {code:"DS08",      brand:"ALI'S FRY & GRILL",         subBrand:"",                           fc:"KOUFU",manager:"TEONG",   company:"ALI'S FRY AND GRILL II PTE LTD", address:"",                                              lat:1.3329, lng:103.7436},
-  {code:"FU05-1",    brand:"HAO JIA BAN MIAN",          subBrand:"",                           fc:"KOUFU",manager:"YUANZHEN",company:"HAO JIA (V09) PTE LTD",          address:"1 Fusionopolis Way, #B2-02",                    lat:1.2993, lng:103.7872},
-  {code:"GM02",      brand:"HAO JIA BAN MIAN",          subBrand:"",                           fc:"KPT",  manager:"YUANHUI", company:"RAINBOW HOLDINGS PTE LTD",       address:"29A Ghim Moh Link #01-06, Stall 02",           lat:1.3076, lng:103.7881},
-  {code:"GR08-1",    brand:"HAO JIA BAN MIAN",          subBrand:"",                           fc:"KPT",  manager:"YUANZHEN",company:"HAO JIA (V08) PTE LTD",          address:"524A Jelapang Rd, #01-01",                      lat:1.3782, lng:103.7635},
-  {code:"H377",      brand:"SEABAY DELIGHT",            subBrand:"",                           fc:"KOUFU",manager:"PHILIP",  company:"BRANWOOD (V07) PTE LTD",         address:"377 Hougang St 32 #01-30",                      lat:1.3721, lng:103.8919},
-  {code:"HIL17",     brand:"SEABAY DELIGHT",            subBrand:"",                           fc:"KOUFU",manager:"ALEX",    company:"BRANWOOD (V06) PTE LTD",         address:"17 Petir Road, #02-15 Hillion Mall",            lat:1.3784, lng:103.7632},
-  {code:"J817",      brand:"SPINACH CHEF",              subBrand:"",                           fc:"FJ",   manager:"YUANHUI", company:"SPINACH CHEF PTE LTD",           address:"9 Bishan Place #04-01/02E",                     lat:1.3508, lng:103.8485},
-  {code:"JEM08",     brand:"HAO JIA BAN MIAN",          subBrand:"",                           fc:"KPT",  manager:"YUANHUI", company:"HAO JIA (V06) PTE LTD",          address:"50 Jurong Gateway Road",                        lat:1.3331, lng:103.7427},
-  {code:"JEMR3",     brand:"HAO JIA JI",                subBrand:"",                           fc:"KPT",  manager:"YUANZHEN",company:"BRANWOOD (V02) PTE LTD",         address:"50 Jurong Gateway Road",                        lat:1.3334, lng:103.7430},
-  {code:"JK07",      brand:"HAO JIA JI",                subBrand:"",                           fc:"KPT",  manager:"YUANZHEN",company:"BRANWOOD (V02) PTE LTD",         address:"1 Joo Koon Circle #03-25",                      lat:1.3276, lng:103.6788},
-  {code:"JP05",      brand:"HAO JIA BAN MIAN",          subBrand:"",                           fc:"KPT",  manager:"YUANZHEN",company:"HAO JIA (V09) PTE LTD",          address:"1 Jurong West Central 2 #03-42",                lat:1.3432, lng:103.7219},
-  {code:"JPC11",     brand:"SEABAY DELIGHT",            subBrand:"Seabay Wok Delight",         fc:"KPT",  manager:"ALEX",    company:"SEABAY DELIGHTS PTE LTD",        address:"1 Jurong West Central 2 #B1-42/43/44",         lat:1.3435, lng:103.7222},
-  {code:"KH253",     brand:"HAO JIA BAN MIAN",          subBrand:"",                           fc:"KPT",  manager:"YUANZHEN",company:"HAO JIA (V03) PTE LTD",          address:"253 Choa Chu Kang Avenue 1 #01-24",             lat:1.3857, lng:103.7469},
-  {code:"KHQ02",     brand:"HAUS BAN MIAN",             subBrand:"",                           fc:"KOUFU",manager:"RU",      company:"HAUS BAN MIAN PTE LTD",          address:"1 Woodlands Height",                            lat:1.4286, lng:103.7994},
-  {code:"KHQ03",     brand:"JAPANESE KOREAN CUISINE",   subBrand:"Maru Jap Korean",            fc:"KOUFU",manager:"RU",      company:"RAINBOW HOLDINGS PTE LTD",       address:"1 Woodlands Height",                            lat:1.4288, lng:103.7997},
-  {code:"KKH08",     brand:"SEABAY DELIGHT",            subBrand:"",                           fc:"KOUFU",manager:"SENG",    company:"SEABAY WOK DELIGHTS PTE LTD",    address:"100 Bukit Timah Road #01-28",                   lat:1.3239, lng:103.8166},
-  {code:"KTPHR1",    brand:"SEABAY DELIGHT",            subBrand:"Seabay Kitchen",             fc:"KPT",  manager:"ALEX",    company:"BRANWOOD (V10) PTE LTD",         address:"90 Yishun Central #01-12, Stall R01",           lat:1.4288, lng:103.8363},
-  {code:"LIDO13-1",  brand:"HAO JIA BAN MIAN",          subBrand:"",                           fc:"FJ",   manager:"IHQ",     company:"HAO JIA (V08) PTE LTD",          address:"1 Scotts Road #B1-01",                          lat:1.3040, lng:103.8318},
-  {code:"LVD01",     brand:"HAUS BAN MIAN",             subBrand:"",                           fc:"KOUFU",manager:"SENG",    company:"HAO JIA PTE LTD",                address:"70 Jellicoe Road, V Hotel #01-03",              lat:1.3072, lng:103.8620},
-  {code:"LVD02",     brand:"SEABAY DELIGHT",            subBrand:"Seabay Wok Delight",         fc:"KOUFU",manager:"SENG",    company:"BRANWOOD (V01) PTE LTD",         address:"70 Jellicoe Road, V Hotel #01-03",              lat:1.3075, lng:103.8623},
-  {code:"LZ03",      brand:"HAO JIA BAN MIAN",          subBrand:"",                           fc:"OTH",  manager:"YUANHUI", company:"HAO JIA (V08) PTE LTD",          address:"51 Bras Basah Road",                            lat:1.2974, lng:103.8515},
-  {code:"MBFC08-2",  brand:"HAO JIA BAN MIAN",          subBrand:"",                           fc:"KPT",  manager:"RU",      company:"LAO HAO JI PTE LTD",             address:"12 Marina Boulevard #02-01/04",                 lat:1.2793, lng:103.8545},
-  {code:"MBS10",     brand:"ALI'S GRILL",               subBrand:"",                           fc:"KOUFU",manager:"PHILIP",  company:"BRANWOOD (V09) PTE LTD",         address:"2 Bayfront Ave, Marina Bay Sands",              lat:1.2834, lng:103.8607},
-  {code:"NHC02",     brand:"HAUS BAN MIAN",             subBrand:"Haus Ban Mian & Fish Soup",  fc:"KPT",  manager:"YUANHUI", company:"HAUS BAN MIAN III PTE LTD",      address:"",                                              lat:1.4175, lng:103.8198},
-  {code:"NP07",      brand:"SEABAY DELIGHT",            subBrand:"",                           fc:"KPT",  manager:"ALEX",    company:"BRANWOOD (V05) PTE LTD",         address:"",                                              lat:1.3786, lng:103.7635},
-  {code:"NS01",      brand:"SEABAY DELIGHT",            subBrand:"Seabay Wok Delight",         fc:"KPT",  manager:"AD",      company:"SEABAY DELIGHTS PTE LTD",        address:"418 Northshore Drive 02-07/08/09",              lat:1.4115, lng:103.9616},
-  {code:"NTF06",     brand:"SEABAY DELIGHT",            subBrand:"",                           fc:"KOUFU",manager:"PHILIP",  company:"BRANWOOD (V01) PTE LTD",         address:"1 Jurong East Street 21, Ng Teng Fong",        lat:1.3329, lng:103.7436},
-  {code:"NUH14",     brand:"SEABAY DELIGHT",            subBrand:"",                           fc:"KPT",  manager:"ALEX",    company:"BRANWOOD (V07) PTE LTD",         address:"5 Lower Kent Ridge Road, NUH",                  lat:1.2940, lng:103.7821},
-  {code:"NUHR4",     brand:"HAO JIA BAN MIAN",          subBrand:"",                           fc:"OTH",  manager:"YUANZHEN",company:"HAO JIA (V05) PTE LTD",          address:"1 Lower Kent Ridge Road",                       lat:1.2943, lng:103.7824},
-  {code:"OAS05",     brand:"HAO JIA MEE HOON KUAY",     subBrand:"",                           fc:"KOUFU",manager:"SENG",    company:"HAO JIA (V11) PTE LTD",          address:"681 Punggol Drive #04-01",                      lat:1.4023, lng:103.9085},
-  {code:"OCH02",     brand:"SEABAY DELIGHT",            subBrand:"",                           fc:"KOUFU",manager:"TEONG",   company:"BRANWOOD (V10) PTE LTD",         address:"10 Hospital Boulevard #02-03",                  lat:1.2826, lng:103.8437},
-  {code:"PAR03",     brand:"SEABAY DELIGHT",            subBrand:"",                           fc:"KOUFU",manager:"IHQ",     company:"SEABAY DELIGHTS V2 PTE LTD",     address:"302 Tengah Park Avenue",                        lat:1.3668, lng:103.7206},
-  {code:"PAR04",     brand:"HAUS BAN MIAN",             subBrand:"",                           fc:"KOUFU",manager:"RU",      company:"HAUS BAN MIAN II PTE LTD",       address:"302 Tengah Park Avenue",                        lat:1.3671, lng:103.7209},
-  {code:"PLS08",     brand:"HAUS BAN MIAN",             subBrand:"",                           fc:"KPT",  manager:"SENG",    company:"BRANWOOD (V01) PTE LTD",         address:"60 Paya Lebar Road PLS #B1-51",                 lat:1.3179, lng:103.8927},
-  {code:"PM03",      brand:"SEABAY DELIGHT",            subBrand:"",                           fc:"KOUFU",manager:"ALEX",    company:"SEABAY DELIGHTS V2 PTE LTD",     address:"638A Jurong West Street 61",                    lat:1.3393, lng:103.7077},
-  {code:"PPR1",      brand:"SEABAY DELIGHT",            subBrand:"Seabay Wok Delight",         fc:"KPT",  manager:"SENG",    company:"SEABAY DELIGHTS PTE LTD",        address:"80 Marine Parade Road",                         lat:1.3013, lng:103.9063},
-  {code:"PRM10-1",   brand:"HAUS BAN MIAN",             subBrand:"",                           fc:"KPT",  manager:"AD",      company:"HAO JIA (V11) PTE LTD",          address:"7 Pasir Ris Central, #B2-17",                   lat:1.3731, lng:103.9492},
-  {code:"PSR1-1",    brand:"SEABAY DELIGHT",            subBrand:"Seabay Wok Delight",         fc:"KPT",  manager:"IHQ",     company:"BRANWOOD (V02) PTE LTD",         address:"68 Orchard Road",                               lat:1.3024, lng:103.8332},
-  {code:"PWP02",     brand:"HAO JIA MEE HOON KUAY",     subBrand:"",                           fc:"KOUFU",manager:"TEONG",   company:"HAO JIA (V05) PTE LTD",          address:"83 Punggol Central #02-20/21",                  lat:1.3987, lng:103.9072},
-  {code:"RC15",      brand:"SPINACH CHEF",              subBrand:"",                           fc:"FJ",   manager:"YUANHUI", company:"HAO JIA (V11) PTE LTD",          address:"252 North Bridge Road #03-15/16/17",            lat:1.2965, lng:103.8560},
-  {code:"SFH08-1",   brand:"HAO JIA BAN MIAN",          subBrand:"",                           fc:"OTH",  manager:"RU",      company:"HAO JIA PTE LTD",                address:"3 Shenton Way #01-04",                          lat:1.2783, lng:103.8482},
-  {code:"SK433",     brand:"ALI'S GRILL",               subBrand:"",                           fc:"KOUFU",manager:"TEONG",   company:"RAINBOW HOLDINGS PTE LTD",       address:"433A Sengkang West Way",                        lat:1.3930, lng:103.8852},
-  {code:"SKH05",     brand:"HAUS BAN MIAN",             subBrand:"Haus Spinach & Noodles",     fc:"KOUFU",manager:"TEONG",   company:"HAO JIA (V08) PTE LTD",          address:"1 Anchorvale Street #01-21",                    lat:1.3917, lng:103.8927},
-  {code:"SKHR2",     brand:"SEABAY DELIGHT",            subBrand:"",                           fc:"KOUFU",manager:"TEONG",   company:"SEABAY DELIGHTS PTE LTD",        address:"1 Anchorvale Street #01-21",                    lat:1.3920, lng:103.8930},
-  {code:"SMU04",     brand:"HAUS BAN MIAN",             subBrand:"Haus Ban Mian & Fish Soup",  fc:"KOUFU",manager:"SENG",    company:"HAUS BAN MIAN II PTE LTD",       address:"70 Stamford Road #B1-26/27/28",                 lat:1.2981, lng:103.8494},
-  {code:"SSC03",     brand:"SEABAY DELIGHT",            subBrand:"Seabay Wok Delight",         fc:"KPT",  manager:"ALEX",    company:"BRANWOOD (V09) PTE LTD",         address:"604 Sembawang Road #B1-25/25A",                 lat:1.4466, lng:103.8213},
-  {code:"SSC05",     brand:"HAUS BAN MIAN",             subBrand:"Haus Ban Mian & Spinach",    fc:"KPT",  manager:"ALEX",    company:"HAUS BAN MIAN PTE LTD",          address:"604 Sembawang Road #B1-25/25A",                 lat:1.4469, lng:103.8216},
-  {code:"SUMR4",     brand:"JAPANESE KOREAN CUISINE",   subBrand:"Maru Jap Korean",            fc:"KPT",  manager:"IHQ",     company:"BRANWOOD (V05) PTE LTD",         address:"231 Sumang Lane #01-01, Stall R04",             lat:1.3935, lng:103.9089},
-  {code:"T2R3",      brand:"ALI'S FRY & GRILL",         subBrand:"",                           fc:"KOUFU",manager:"PHILIP",  company:"ALI'S FRY AND GRILL PTE LTD",    address:"",                                              lat:1.3332, lng:103.7439},
-  {code:"T311",      brand:"HAUS BAN MIAN",             subBrand:"Haus Fish & Spinach Soup",   fc:"KPT",  manager:"AD",      company:"HAO JIA (V05) PTE LTD",          address:"65 Airport Boulevard, #B2-03",                  lat:1.3592, lng:103.9888},
-  {code:"T4M8-1",    brand:"SEABAY DELIGHT",            subBrand:"",                           fc:"KPT",  manager:"AD",      company:"BRANWOOD F&B MANAGEMENT PTE LTD",address:"10 Airport Boulevard, #02-205",                 lat:1.3601, lng:103.9886},
-  {code:"TPMR4",     brand:"SEABAY DELIGHT",            subBrand:"Seabay Wok Delight",         fc:"KOUFU",manager:"AD",      company:"SEABAY WOK DELIGHTS PTE LTD",    address:"9 Tampines Street 32 #01-01/02/14",             lat:1.3496, lng:103.9380},
-  {code:"TPYR3",     brand:"HAUS BAN MIAN",             subBrand:"Haus Spinach & Noodles",     fc:"KOUFU",manager:"SENG",    company:"HAUS BAN MIAN PTE LTD",          address:"470 Lorong 6 Toa Payoh",                        lat:1.3337, lng:103.8473},
-  {code:"US04-1",    brand:"HAO JIA BAN MIAN",          subBrand:"",                           fc:"OTH",  manager:"RU",      company:"HAO JIA (V11) PTE LTD",          address:"101 Thomson Road, United Square #B1-02",        lat:1.3237, lng:103.8364},
-  {code:"W768",      brand:"ALI'S FRY & GRILL",         subBrand:"",                           fc:"KOUFU",manager:"PHILIP",  company:"ALI'S FRY AND GRILL II PTE LTD", address:"768 Woodlands Avenue 6",                        lat:1.4338, lng:103.7894},
-  {code:"WG02-1",    brand:"SPINACH CHEF",              subBrand:"",                           fc:"FJ",   manager:"RU",      company:"HAO JIA (V06) PTE LTD",          address:"3 Gateway Drive #B1-29 Westgate",               lat:1.3337, lng:103.7430},
-  {code:"WH02",      brand:"SEABAY DELIGHT",            subBrand:"Seabay Wok Delight",         fc:"KOUFU",manager:"ALEX",    company:"BRANWOOD F&B MANAGEMENT PTE LTD",address:"17 Woodlands Drive 17, Woodland Health",        lat:1.4330, lng:103.7864},
-  {code:"WIS05",     brand:"ALI'S FRY & GRILL",         subBrand:"",                           fc:"KOUFU",manager:"TEONG",   company:"BRANWOOD (V10) PTE LTD",         address:"598 Yishun Ring Road",                          lat:1.4208, lng:103.8374},
-  {code:"WM06",      brand:"HAO JIA BAN MIAN",          subBrand:"",                           fc:"KPT",  manager:"YUANHUI", company:"HAO JIA (V03) PTE LTD",          address:"",                                              lat:1.4287, lng:103.7995},
-  {code:"Y507",      brand:"SEABAY DELIGHT",            subBrand:"Seabay Wok Delight",         fc:"KPT",  manager:"ALEX",    company:"BRANWOOD (V02) PTE LTD",         address:"507 Yishun Avenue 4",                           lat:1.4089, lng:103.8467},
-  {code:"YCH05",     brand:"HAUS BAN MIAN",             subBrand:"Haus Fish Soup & Ban Mian",  fc:"KOUFU",manager:"ALEX",    company:"HAO JIA (V03) PTE LTD",          address:"2 Yishun Central 2, #02-01",                    lat:1.4249, lng:103.8359},
-  {code:"YTS08",     brand:"HAO JIA BAN MIAN",          subBrand:"",                           fc:"KPT",  manager:"YUANHUI", company:"HAO JIA (V04) PTE LTD",          address:"",                                              lat:1.4290, lng:103.7998},
-];
+// =============================================================
+// CONFIG
+// =============================================================
+const SHEET_ID = '1HFm4S3QvJOG4u_pE8U9D8JSqwuX2Cs8qt9MHpzLsnbs';
+const GID = '408242429';
+const CSV_URL = (cacheBust) => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}` + (cacheBust ? `&_=${Date.now()}` : '');
 
-// ══ COLOUR MAPS ══
-const BRAND_COLOR = {
-  "SEABAY DELIGHT":         "#3b82f6",
-  "HAUS BAN MIAN":          "#f97316",
-  "HAO JIA BAN MIAN":       "#22c55e",
-  "HAO JIA MEE HOON KUAY":  "#10b981",
-  "HAO JIA JI":             "#84cc16",
-  "SPINACH CHEF":           "#06b6d4",
-  "ALI'S FRY & GRILL":      "#ef4444",
-  "ALI'S GRILL":            "#f87171",
-  "JAPANESE KOREAN CUISINE":"#a855f7",
-  "CK":                     "#94a3b8",
+// Column indexes (0-based) per locked source schema (read K..AF only)
+const COL = {
+  K_entity: 10, L_entity_short: 11, M_in_ex: 12, N_price_code: 13,
+  O_food_court: 14, P_brand_full: 15, Q_data_code: 16,
+  R_l6: 17, S_l5: 18, T_manager: 19, U_l3: 20, V_l2: 21,
+  W_outlet_code: 22, X_open_date: 23, Y_close_date: 24, Z_operating: 25,
+  AA_sfa: 26, AB_address: 27, AC_acc_email: 28, AD_stm_code: 29,
+  AE_fc_qty: 30, AF_fp_qty: 31
 };
-const FC_LABEL = {KPT:"Kopitiam", KOUFU:"Koufu", FJ:"FairPrice/Junctions", OTH:"Others", "":"HQ/Internal"};
-const FC_COLOR = {Kopitiam:"#3b82f6", Koufu:"#22c55e", "FairPrice/Junctions":"#f59e0b", Others:"#8b5cf6", "HQ/Internal":"#94a3b8"};
 
-function bColor(b){ return BRAND_COLOR[b]||"#64748b" }
+const BRAND_COLOR = {
+  "SEABAY DELIGHT":"#3b82f6", "HAUS BAN MIAN":"#f97316", "HAO JIA BAN MIAN":"#22c55e",
+  "HAO JIA MEE HOON KUAY":"#10b981", "HAO JIA JI":"#84cc16", "SPINACH CHEF":"#06b6d4",
+  "ALI'S FRY & GRILL":"#ef4444", "ALI'S GRILL":"#f87171",
+  "JAPANESE KOREAN CUISINE":"#a855f7", "CK":"#94a3b8"
+};
+const FC_LABEL = {KPT:"Kopitiam", KOUFU:"Koufu", FJ:"Food Junction", OTH:"Others", "":"HQ/Internal"};
+const FC_COLOR = {Kopitiam:"#3b82f6", Koufu:"#22c55e", "Food Junction":"#f59e0b", Others:"#8b5cf6", "HQ/Internal":"#94a3b8"};
+const NON_FIELD_MGRS = new Set(["CK","IHQ","HQO"]);
 
+// Register datalabels plugin globally so all charts show value + percentage
+if (window.ChartDataLabels) Chart.register(window.ChartDataLabels);
+
+// Per-tab status filter state. Default 'active' for Outlets/Companies/Health,
+// 'both' for the openings/closures timeline (whole point is historical view).
+const STATUS_FILTER = { outlets: 'active', companies: 'active', health: 'active', timeline: 'both' };
+
+function setStatusFilter(scope, val){
+  STATUS_FILTER[scope] = val;
+  const groupId = ({outlets:'outletsPills', companies:'coPills', health:'dhPills', timeline:'tlPills'})[scope];
+  document.querySelectorAll(`#${groupId} .pill`).forEach(p => {
+    p.classList.toggle('active', p.dataset.val === val);
+  });
+  if (scope === 'outlets') applyFilters();
+  else if (scope === 'companies') renderCompanies();
+  else if (scope === 'health') renderHealth();
+  else if (scope === 'timeline') renderTimeline();
+}
+
+function applyStatus(rows, scope){
+  const v = STATUS_FILTER[scope];
+  if (v === 'both') return rows;
+  if (v === 'active') return rows.filter(o => o.operating);
+  return rows.filter(o => !o.operating);  // inactive
+}
+
+function bColor(b){ return BRAND_COLOR[b] || "#64748b" }
 function badgeClass(b){
+  if(!b) return "b-ck";
   if(b.includes("SEABAY")) return "b-sea";
   if(b.includes("HAUS")) return "b-haus";
   if(b==="HAO JIA MEE HOON KUAY") return "b-mhk";
@@ -369,247 +454,581 @@ function badgeClass(b){
   if(b.includes("HAO JIA")) return "b-hjo";
   if(b.includes("SPINACH")) return "b-spi";
   if(b.includes("ALI")) return "b-ali";
-  if(b.includes("JAPANESE")||b.includes("KOREAN")) return "b-jkc";
+  if(b.includes("JAPANESE") || b.includes("KOREAN")) return "b-jkc";
   return "b-ck";
 }
 
-// ══ INIT ══
-window.addEventListener("DOMContentLoaded", () => {
-  const brands   = [...new Set(OUTLETS.map(o=>o.brand))].sort();
-  const mgrs     = [...new Set(OUTLETS.map(o=>o.manager).filter(m=>!["CK","IHQ"].includes(m)))].sort();
-  const cos      = [...new Set(OUTLETS.map(o=>o.company))];
-  const fcs      = [...new Set(OUTLETS.map(o=>o.fc).filter(Boolean))];
+// =============================================================
+// CSV PARSER (handles quoted fields with commas + escaped quotes)
+// =============================================================
+function parseCSV(text){
+  // Char-by-char parser that handles embedded newlines inside quoted fields.
+  // The CTM header has cells like "PRICE\nCODE" — splitting on newlines first breaks alignment.
+  const rows = [];
+  let cur = '', row = [], inQ = false;
+  for (let i = 0; i < text.length; i++){
+    const c = text[i];
+    if (c === '"'){
+      if (inQ && text[i+1] === '"'){ cur += '"'; i++; }
+      else { inQ = !inQ; }
+    } else if (c === ',' && !inQ){
+      row.push(cur); cur = '';
+    } else if ((c === '\n' || c === '\r') && !inQ){
+      if (c === '\r' && text[i+1] === '\n') i++;
+      row.push(cur); cur = '';
+      if (row.length > 1 || row[0] !== '') rows.push(row);
+      row = [];
+    } else {
+      cur += c;
+    }
+  }
+  if (cur.length || row.length){ row.push(cur); rows.push(row); }
+  return rows;
+}
 
-  // Header stats
-  document.getElementById("hdr-total").textContent  = OUTLETS.length;
-  document.getElementById("hdr-brands").textContent = brands.length;
-  document.getElementById("hdr-mgrs").textContent   = mgrs.length;
+// =============================================================
+// FETCH + FILTER
+// =============================================================
+let OUTLETS = [];        // user-facing rows (O filled, M != EX)
+let BACKEND_ROWS = [];   // O blank, kept for back-end joins (not displayed)
 
-  // KPI cards
-  document.getElementById("k-total").textContent  = OUTLETS.length;
-  document.getElementById("k-brands").textContent = brands.length;
-  document.getElementById("k-mgrs").textContent   = mgrs.length;
-  document.getElementById("k-fc").textContent     = fcs.length;
-  document.getElementById("k-co").textContent     = cos.length;
+async function fetchData(showOverlay){
+  const overlay = document.getElementById('loadingOverlay');
+  const banner = document.getElementById('errorBanner');
+  banner.style.display = 'none';
+  if (showOverlay){ overlay.classList.add('show'); overlay.textContent = 'Fetching CTM sheet...'; }
 
-  // Populate selects
-  ["fBrand","mBrand"].forEach(id=>{
-    const sel = document.getElementById(id);
-    brands.forEach(b=>sel.add(new Option(b,b)));
+  try {
+    const resp = await fetch(CSV_URL(true), { credentials: 'omit' });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const text = await resp.text();
+    const rows = parseCSV(text);
+    if (rows.length < 2) throw new Error('CSV has no data rows');
+
+    OUTLETS = [];
+    BACKEND_ROWS = [];
+
+    for (let i = 1; i < rows.length; i++){
+      const r = rows[i];
+      if (r.length < 32) continue;
+
+      const inEx = (r[COL.M_in_ex] || '').trim().toUpperCase();
+      if (inEx === 'EX') continue;
+
+      const outletCode = (r[COL.W_outlet_code] || '').trim();
+      const brandFull = (r[COL.P_brand_full] || '').trim();
+      if (!outletCode || !brandFull) continue;
+
+      const foodCourt = (r[COL.O_food_court] || '').trim();
+      const [brand, ...subParts] = brandFull.split(' - ');
+      const subBrand = subParts.join(' - ').trim();
+
+      const row = {
+        outlet_code: outletCode,
+        brand_full: brandFull,
+        brand: brand.trim(),
+        sub_brand: subBrand,
+        manager: (r[COL.T_manager] || '').trim(),
+        food_court: foodCourt,
+        entity: (r[COL.K_entity] || '').trim(),
+        entity_short: (r[COL.L_entity_short] || '').trim(),
+        customer_type: inEx,
+        open_date: (r[COL.X_open_date] || '').trim(),
+        close_date: (r[COL.Y_close_date] || '').trim(),
+        operating: (r[COL.Z_operating] || '').trim().toUpperCase() === 'Y',
+        sfa_number: (r[COL.AA_sfa] || '').trim(),
+        address: (r[COL.AB_address] || '').trim().replace(/\n/g,' | '),
+        acc_email: (r[COL.AC_acc_email] || '').trim(),
+        fc_qty_code: (r[COL.AE_fc_qty] || '').trim(),
+        fp_qty_code: (r[COL.AF_fp_qty] || '').trim(),
+        // back-end-only (carried, not displayed)
+        _price_code: (r[COL.N_price_code] || '').trim(),
+        _data_code: (r[COL.Q_data_code] || '').trim(),
+        _l6: (r[COL.R_l6] || '').trim(),
+        _l5: (r[COL.S_l5] || '').trim(),
+        _l3: (r[COL.U_l3] || '').trim(),
+        _l2: (r[COL.V_l2] || '').trim(),
+        _stm_code: (r[COL.AD_stm_code] || '').trim()
+      };
+
+      // user-facing rows have O (food_court) filled
+      if (foodCourt) OUTLETS.push(row);
+      else BACKEND_ROWS.push(row);
+    }
+
+    const stamp = new Date();
+    document.getElementById('refreshMeta').textContent = 'As of ' + stamp.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) + ' ' + stamp.toLocaleDateString();
+    console.log(`[CTM] Loaded ${OUTLETS.length} user-facing rows, ${BACKEND_ROWS.length} back-end-only rows`);
+
+    overlay.classList.remove('show');
+    return true;
+  } catch (err){
+    overlay.classList.remove('show');
+    banner.style.display = 'block';
+    banner.textContent = 'Could not fetch CTM sheet: ' + err.message + '. The sheet must be shared as "Anyone with link - Viewer".';
+    console.error(err);
+    return false;
+  }
+}
+
+function refreshData(){
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('spinning');
+  btn.disabled = true;
+  fetchData(false).then(ok => {
+    btn.classList.remove('spinning');
+    btn.disabled = false;
+    if (ok) reinitDashboard();
   });
-  ["fMgr","mMgr"].forEach(id=>{
-    const sel = document.getElementById(id);
-    mgrs.forEach(m=>sel.add(new Option(m,m)));
-  });
+}
 
-  buildCharts();
+// =============================================================
+// INIT / REINIT
+// =============================================================
+function reinitDashboard(){
+  // Operating-only set (KPI counts and default table view both use this)
+  const ops = OUTLETS.filter(o => o.operating);
+
+  const brands = [...new Set(ops.map(o => o.brand))].sort();
+  const fieldMgrs = [...new Set(ops.map(o => o.manager).filter(m => !NON_FIELD_MGRS.has(m)))].sort();
+  const allMgrs = [...new Set(OUTLETS.map(o => o.manager))].sort();
+  const cos = [...new Set(ops.map(o => o.entity))];
+  const fcs = [...new Set(ops.map(o => o.food_court).filter(Boolean))];
+
+  document.getElementById('hdr-total').textContent = ops.length;
+  document.getElementById('hdr-brands').textContent = brands.length;
+  document.getElementById('hdr-mgrs').textContent = fieldMgrs.length;
+
+  document.getElementById('k-total').textContent = ops.length;
+  document.getElementById('k-brands').textContent = brands.length;
+  document.getElementById('k-mgrs').textContent = fieldMgrs.length;
+  document.getElementById('k-fc').textContent = fcs.length;
+  document.getElementById('k-co').textContent = cos.length;
+
+  // Repopulate selects (preserve current values)
+  const allBrands = [...new Set(OUTLETS.map(o => o.brand))].sort();
+  let sel = document.getElementById('fBrand');
+  let cur = sel.value;
+  sel.innerHTML = '<option value="">All Brands</option>';
+  allBrands.forEach(b => sel.add(new Option(b,b)));
+  sel.value = cur;
+
+  sel = document.getElementById('fMgr');
+  cur = sel.value;
+  sel.innerHTML = '<option value="">All Managers</option>';
+  allMgrs.forEach(m => sel.add(new Option(m,m)));
+  sel.value = cur;
+
+  refreshCompanyBrandFilter();
+  buildCharts(ops);
   applyFilters();
-});
+  renderCompanies();
+  renderHealth();
+  renderTimeline();
+}
 
-// ══ CHARTS ══
-function buildCharts(){
-  // Brand chart
-  const bCnt={};
-  OUTLETS.forEach(o=>{ bCnt[o.brand]=(bCnt[o.brand]||0)+1; });
-  const bE = Object.entries(bCnt).sort((a,b)=>b[1]-a[1]);
-  new Chart(document.getElementById("cBrand"),{
-    type:"bar",
-    data:{
-      labels:bE.map(e=>e[0]),
-      datasets:[{data:bE.map(e=>e[1]),backgroundColor:bE.map(e=>bColor(e[0])),borderRadius:5,borderSkipped:false}]
-    },
-    options:{
-      indexAxis:"y",responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw} outlets`}}},
-      scales:{x:{grid:{color:"#f1f5f9"},ticks:{font:{size:10}}},y:{grid:{display:false},ticks:{font:{size:10}}}}
+// =============================================================
+// CHARTS
+// =============================================================
+let chartBrand = null, chartFC = null, chartMgr = null;
+
+function pct(n, total){ return total ? Math.round(100 * n / total) : 0; }
+
+function buildCharts(ops){
+  const total = ops.length;
+
+  const bCnt = {};
+  ops.forEach(o => { bCnt[o.brand] = (bCnt[o.brand]||0) + 1; });
+  const bE = Object.entries(bCnt).sort((a,b) => b[1]-a[1]);
+  if (chartBrand) chartBrand.destroy();
+  chartBrand = new Chart(document.getElementById('cBrand'), {
+    type: 'bar',
+    data: { labels: bE.map(e=>e[0]), datasets: [{ data: bE.map(e=>e[1]), backgroundColor: bE.map(e=>bColor(e[0])), borderRadius:5, borderSkipped:false }] },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      layout: { padding: { right: 50 } },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => ` ${c.raw} outlets (${pct(c.raw,total)}%)` } },
+        datalabels: {
+          anchor: 'end', align: 'end', color: '#374151',
+          font: { size: 10, weight: 700 },
+          formatter: v => `${v} (${pct(v,total)}%)`
+        }
+      },
+      scales: { x: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } } },
+                y: { grid: { display: false }, ticks: { font: { size: 10 } } } }
     }
   });
 
-  // FC donut
-  const fcCnt={};
-  OUTLETS.forEach(o=>{ const l=FC_LABEL[o.fc]||"HQ/Internal"; fcCnt[l]=(fcCnt[l]||0)+1; });
-  const fcE=Object.entries(fcCnt).filter(e=>e[1]>0);
-  new Chart(document.getElementById("cFC"),{
-    type:"doughnut",
-    data:{
-      labels:fcE.map(e=>e[0]),
-      datasets:[{data:fcE.map(e=>e[1]),backgroundColor:fcE.map(e=>FC_COLOR[e[0]]||"#94a3b8"),borderWidth:2,borderColor:"#fff",hoverOffset:6}]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,cutout:"60%",
-      plugins:{legend:{position:"bottom",labels:{font:{size:10},padding:7,boxWidth:10}},tooltip:{callbacks:{label:c=>` ${c.label}: ${c.raw}`}}}
+  const fcCnt = {};
+  ops.forEach(o => { const l = FC_LABEL[o.food_court] || 'HQ/Internal'; fcCnt[l] = (fcCnt[l]||0) + 1; });
+  const fcE = Object.entries(fcCnt).filter(e => e[1] > 0);
+  if (chartFC) chartFC.destroy();
+  chartFC = new Chart(document.getElementById('cFC'), {
+    type: 'doughnut',
+    data: { labels: fcE.map(e=>e[0]), datasets: [{ data: fcE.map(e=>e[1]), backgroundColor: fcE.map(e=>FC_COLOR[e[0]]||'#94a3b8'), borderWidth:2, borderColor:'#fff', hoverOffset:6 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '55%',
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 10 }, padding: 7, boxWidth: 10 } },
+        tooltip: { callbacks: { label: c => ` ${c.label}: ${c.raw} (${pct(c.raw,total)}%)` } },
+        datalabels: {
+          color: '#fff', font: { size: 10, weight: 700 },
+          formatter: (v, ctx) => `${v}\n${pct(v,total)}%`,
+          textAlign: 'center'
+        }
+      }
     }
   });
 
-  // Manager bar
-  const mCnt={};
-  OUTLETS.forEach(o=>{ mCnt[o.manager]=(mCnt[o.manager]||0)+1; });
-  const mE=Object.entries(mCnt).sort((a,b)=>b[1]-a[1]);
-  const mPal=["#3b82f6","#22c55e","#f97316","#ef4444","#a855f7","#06b6d4","#84cc16","#f59e0b","#94a3b8","#ec4899"];
-  new Chart(document.getElementById("cMgr"),{
-    type:"bar",
-    data:{
-      labels:mE.map(e=>e[0]),
-      datasets:[{data:mE.map(e=>e[1]),backgroundColor:mE.map((_,i)=>mPal[i%mPal.length]),borderRadius:5,borderSkipped:false}]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw} outlets`}}},
-      scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{grid:{color:"#f1f5f9"},ticks:{font:{size:10},stepSize:1}}}
+  const fieldOps = ops.filter(o => !NON_FIELD_MGRS.has(o.manager));
+  const totalField = fieldOps.length;
+  const mCnt = {};
+  fieldOps.forEach(o => { mCnt[o.manager] = (mCnt[o.manager]||0) + 1; });
+  const mE = Object.entries(mCnt).sort((a,b) => b[1]-a[1]);
+  const mPal = ['#3b82f6','#22c55e','#f97316','#ef4444','#a855f7','#06b6d4','#84cc16','#f59e0b','#94a3b8','#ec4899'];
+  if (chartMgr) chartMgr.destroy();
+  chartMgr = new Chart(document.getElementById('cMgr'), {
+    type: 'bar',
+    data: { labels: mE.map(e=>e[0]), datasets: [{ data: mE.map(e=>e[1]), backgroundColor: mE.map((_,i)=>mPal[i%mPal.length]), borderRadius:5, borderSkipped:false }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { top: 18 } },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => ` ${c.raw} outlets (${pct(c.raw,totalField)}%)` } },
+        datalabels: {
+          anchor: 'end', align: 'top', color: '#374151',
+          font: { size: 10, weight: 700 },
+          formatter: v => `${v} (${pct(v,totalField)}%)`
+        }
+      },
+      scales: { x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 }, stepSize: 1 } } }
     }
   });
 }
 
-// ══ TABLE ══
-let filtered=[...OUTLETS], sortKey="code", sortDir=1;
+// =============================================================
+// OPENINGS & CLOSURES TIMELINE
+// =============================================================
+function parseYearFromDate(s){
+  // CTM dates look like "01-Apr-26" or "15-Aug-2014" — extract year as a 4-digit
+  if (!s) return null;
+  const m = s.match(/(\d{2,4})\s*$/);
+  if (!m) return null;
+  let y = parseInt(m[1], 10);
+  if (y < 100) y += y < 70 ? 2000 : 1900;
+  return y;
+}
+
+function renderTimeline(){
+  const scope = STATUS_FILTER.timeline;
+  const pool = scope === 'both' ? OUTLETS
+             : scope === 'active' ? OUTLETS.filter(o => o.operating)
+             : OUTLETS.filter(o => !o.operating);
+
+  const opens = {}, closes = {};
+  pool.forEach(o => {
+    const yo = parseYearFromDate(o.open_date);
+    if (yo) opens[yo] = (opens[yo]||0) + 1;
+    const yc = parseYearFromDate(o.close_date);
+    if (yc) closes[yc] = (closes[yc]||0) + 1;
+  });
+
+  const allYears = [...new Set([...Object.keys(opens), ...Object.keys(closes)])]
+    .map(Number).sort((a,b) => a - b);
+  const totalOpen = Object.values(opens).reduce((a,b)=>a+b, 0);
+  const totalClose = Object.values(closes).reduce((a,b)=>a+b, 0);
+  const maxBar = Math.max(...Object.values(opens), ...Object.values(closes), 1);
+
+  const t = document.getElementById('tlTable');
+  if (!allYears.length){ t.innerHTML = '<tr><td>No data for this filter.</td></tr>'; return; }
+
+  // Outlets in pool with no parseable open_date — they don't appear in any year
+  const missingOutlets = pool.filter(o => !parseYearFromDate(o.open_date));
+
+  const header = `<thead><tr><th>Year</th><th>Opened</th><th></th><th>Closed</th><th></th><th>Net</th><th>Active EOY</th></tr></thead>`;
+  let running = 0;
+  const rows = allYears.map(y => {
+    const op = opens[y] || 0;
+    const cl = closes[y] || 0;
+    const opBar = op ? `<span class="tl-bar" style="width:${(op/maxBar)*80}px"></span>` : '';
+    const clBar = cl ? `<span class="tl-bar cl" style="width:${(cl/maxBar)*80}px"></span>` : '';
+    const net = op - cl;
+    const netStr = net > 0 ? `+${net}` : net < 0 ? `${net}` : '0';
+    const netColor = net > 0 ? '#16a34a' : net < 0 ? '#dc2626' : '#9ca3af';
+    running += net;
+    return `<tr>
+      <td>${y}</td>
+      <td>${op || ''}</td><td style="text-align:left">${opBar}</td>
+      <td>${cl || ''}</td><td style="text-align:left">${clBar}</td>
+      <td style="color:${netColor};font-weight:700">${netStr}</td>
+      <td style="font-weight:700;color:#1a1d2e">${running}</td>
+    </tr>`;
+  }).join('');
+  const totalNet = totalOpen - totalClose;
+  const totalRow = `<tr class="tl-total"><td>Total</td><td>${totalOpen}</td><td></td><td>${totalClose}</td><td></td><td>${totalNet >= 0 ? '+' : ''}${totalNet}</td><td>${running}</td></tr>`;
+  const note = missingOutlets.length
+    ? `<tfoot><tr><td colspan="7" style="font-size:.72rem;color:#6b7280;padding:10px;font-style:italic;background:#fef9c3">
+        <b style="color:#78350f;font-style:normal">Excluded (${missingOutlets.length}):</b>
+        ${missingOutlets.map(o => `<span style="font-family:'SF Mono',monospace;color:#374151;font-style:normal;margin-right:8px">${o.outlet_code}</span><span style="color:#9ca3af;margin-right:14px">(${o.brand}${o.operating ? '' : ' - closed'})</span>`).join('')}
+        <span style="display:block;margin-top:4px">missing open_date in CTM &mdash; not counted in any year above.</span>
+      </td></tr></tfoot>`
+    : '';
+  t.innerHTML = header + '<tbody>' + rows + totalRow + '</tbody>' + note;
+}
+
+// =============================================================
+// TABLE
+// =============================================================
+let filtered = [], sortKey = 'outlet_code', sortDir = 1;
 
 function applyFilters(){
-  const s=document.getElementById("fSearch").value.trim().toLowerCase();
-  const b=document.getElementById("fBrand").value;
-  const f=document.getElementById("fFC").value;
-  const m=document.getElementById("fMgr").value;
-  filtered=OUTLETS.filter(o=>{
-    if(b && o.brand!==b) return false;
-    if(f && o.fc!==f)    return false;
-    if(m && o.manager!==m) return false;
-    if(s){
-      const h=`${o.code} ${o.brand} ${o.subBrand} ${o.manager} ${o.address} ${o.company}`.toLowerCase();
-      if(!h.includes(s)) return false;
+  const s = document.getElementById('fSearch').value.trim().toLowerCase();
+  const b = document.getElementById('fBrand').value;
+  const f = document.getElementById('fFC').value;
+  const m = document.getElementById('fMgr').value;
+
+  filtered = applyStatus(OUTLETS, 'outlets').filter(o => {
+    if (b && o.brand !== b) return false;
+    if (f && o.food_court !== f) return false;
+    if (m && o.manager !== m) return false;
+    if (s){
+      const h = `${o.outlet_code} ${o.brand} ${o.sub_brand} ${o.manager} ${o.address} ${o.entity}`.toLowerCase();
+      if (!h.includes(s)) return false;
     }
     return true;
   });
-  filtered.sort((a,b)=>{
-    const av=(a[sortKey]||"").toLowerCase(), bv=(b[sortKey]||"").toLowerCase();
-    return av<bv?-sortDir:av>bv?sortDir:0;
+  filtered.sort((a,b) => {
+    const av = (a[sortKey]||'').toString().toLowerCase();
+    const bv = (b[sortKey]||'').toString().toLowerCase();
+    return av < bv ? -sortDir : av > bv ? sortDir : 0;
   });
   renderTable();
-  document.getElementById("resCount").textContent=filtered.length;
+  document.getElementById('resCount').textContent = filtered.length;
 }
 
 function resetFilters(){
-  ["fSearch","fBrand","fFC","fMgr"].forEach(id=>{ document.getElementById(id).value=""; });
-  applyFilters();
+  ['fSearch','fBrand','fFC','fMgr'].forEach(id => { document.getElementById(id).value = ''; });
+  setStatusFilter('outlets', 'active');
 }
 
-function sortBy(key,th){
-  if(sortKey===key) sortDir*=-1; else{sortKey=key;sortDir=1;}
-  document.querySelectorAll("th.sorted").forEach(t=>t.classList.remove("sorted"));
-  th.classList.add("sorted");
+function sortBy(key, th){
+  if (sortKey === key) sortDir *= -1;
+  else { sortKey = key; sortDir = 1; }
+  document.querySelectorAll('th.sorted').forEach(t => t.classList.remove('sorted'));
+  th.classList.add('sorted');
   applyFilters();
 }
 
 function renderTable(){
-  const body=document.getElementById("tblBody");
-  const noRes=document.getElementById("noRes");
-  if(!filtered.length){ body.innerHTML=""; noRes.style.display="block"; return; }
-  noRes.style.display="none";
-  body.innerHTML=filtered.map(o=>{
-    const fcL=FC_LABEL[o.fc]||(o.fc||"HQ/Internal");
-    const fcC=({KPT:"fc-kpt",KOUFU:"fc-koufu",FJ:"fc-fj",OTH:"fc-oth","":"fc-hq"})[o.fc]||"fc-hq";
-    return `<tr>
-      <td class="td-code">${o.code}</td>
+  const body = document.getElementById('tblBody');
+  const noRes = document.getElementById('noRes');
+  if (!filtered.length){ body.innerHTML = ''; noRes.style.display = 'block'; return; }
+  noRes.style.display = 'none';
+  body.innerHTML = filtered.map((o, i) => {
+    const fcL = FC_LABEL[o.food_court] || (o.food_court || 'HQ/Internal');
+    const fcC = ({KPT:'fc-kpt', KOUFU:'fc-koufu', FJ:'fc-fj', OTH:'fc-oth', '':'fc-hq'})[o.food_court] || 'fc-hq';
+    const status = o.operating
+      ? '<span class="status-pill s-op">Operating</span>'
+      : '<span class="status-pill s-cl">Closed</span>';
+    return `<tr class="${o.operating ? '' : 'closed'}">
+      <td class="td-sn">${i + 1}</td>
+      <td class="td-code">${o.outlet_code}</td>
       <td><span class="badge ${badgeClass(o.brand)}">${o.brand}</span></td>
-      <td style="font-size:.75rem;color:#9ca3af">${o.subBrand||"—"}</td>
+      <td style="font-size:.75rem;color:#6b7280">${o.sub_brand || '-'}</td>
       <td><span class="fc-pill ${fcC}">${fcL}</span></td>
       <td><span class="mgr">${o.manager}</span></td>
-      <td class="td-co" title="${o.company}">${o.company}</td>
-      <td class="td-addr" title="${o.address}">${o.address||'<span style="color:#d1d5db">—</span>'}</td>
+      <td class="td-co">${o.entity}</td>
+      <td class="td-addr">${o.address || '<span style="color:#d1d5db">-</span>'}</td>
+      <td style="font-size:.76rem;color:#374151;white-space:nowrap">${o.open_date || '<span style="color:#d1d5db">-</span>'}</td>
+      <td style="font-size:.76rem;color:#374151;white-space:nowrap">${o.close_date || '<span style="color:#d1d5db">-</span>'}</td>
+      <td>${status}</td>
     </tr>`;
-  }).join("");
+  }).join('');
 }
 
-// ══ MAP ══
-let leafletMap=null, clusterGroup=null;
+// =============================================================
+// COMPANIES TAB — entities as a table with per-column filters
+// =============================================================
+let coSortKey = 'operating_count', coSortDir = -1;
 
-function initMap(){
-  if(leafletMap) return;
-  leafletMap = L.map("leaflet-map",{zoomControl:true}).setView([1.352,103.820],12);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
-    attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    maxZoom:19
-  }).addTo(leafletMap);
-
-  // Legend
-  const legend=L.control({position:"bottomright"});
-  legend.onAdd=()=>{
-    const d=L.DomUtil.create("div","map-legend");
-    d.innerHTML="<b>Brands</b>"+
-      Object.entries(BRAND_COLOR).map(([b,c])=>
-        `<div class="leg-row"><div class="leg-dot" style="background:${c}"></div>${b}</div>`
-      ).join("");
-    return d;
-  };
-  legend.addTo(leafletMap);
-
-  renderMap();
+function sortCompanies(key, th){
+  if (coSortKey === key) coSortDir *= -1;
+  else { coSortKey = key; coSortDir = key === 'entity' || key === 'entity_short' ? 1 : -1; }
+  document.querySelectorAll('#panel-companies th.sorted').forEach(t => t.classList.remove('sorted'));
+  th.classList.add('sorted');
+  renderCompanies();
 }
 
-function makeMapIcon(brand){
-  const c=bColor(brand);
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="26" height="34" viewBox="0 0 26 34">
-    <path d="M13 0C5.8 0 0 5.8 0 13c0 9.2 13 21 13 21S26 22.2 26 13C26 5.8 20.2 0 13 0z" fill="${c}" stroke="white" stroke-width="1.8"/>
-    <circle cx="13" cy="13" r="5.5" fill="white" fill-opacity=".9"/>
-  </svg>`;
-  return L.divIcon({html:svg,className:"",iconSize:[26,34],iconAnchor:[13,34],popupAnchor:[0,-34]});
+function buildCompanyRows(){
+  // Pool depends on the status filter — choose which outlets count toward the entity
+  const pool = applyStatus(OUTLETS, 'companies');
+  const groups = {};
+  pool.forEach(o => {
+    if (!groups[o.entity]) groups[o.entity] = { entity: o.entity, entity_short: o.entity_short, outlets: [] };
+    groups[o.entity].outlets.push(o);
+  });
+  return Object.values(groups).map(g => {
+    const ops = g.outlets.filter(o => o.operating).length;
+    const closed = g.outlets.filter(o => !o.operating).length;
+    const brands = [...new Set(g.outlets.map(o => o.brand))].sort();
+    return {
+      entity: g.entity,
+      entity_short: g.entity_short,
+      operating_count: ops,
+      closed_count: closed,
+      brand_count: brands.length,
+      brands,
+      outlets: g.outlets
+    };
+  });
 }
 
-function renderMap(){
-  if(!leafletMap) return;
-  if(clusterGroup) leafletMap.removeLayer(clusterGroup);
+function refreshCompanyBrandFilter(){
+  const sel = document.getElementById('coF_brand');
+  if (!sel) return;
+  const cur = sel.value;
+  const allBrands = [...new Set(OUTLETS.map(o => o.brand))].sort();
+  sel.innerHTML = '<option value="">All</option>' + allBrands.map(b => `<option value="${b}">${b}</option>`).join('');
+  sel.value = cur;
+}
 
-  const b=document.getElementById("mBrand").value;
-  const m=document.getElementById("mMgr").value;
-  const f=document.getElementById("mFC").value;
+function renderCompanies(){
+  const fEntity = document.getElementById('coF_entity').value.trim().toLowerCase();
+  const fShort  = document.getElementById('coF_short').value.trim().toLowerCase();
+  const fBrand  = document.getElementById('coF_brand').value;
+  const fCodes  = document.getElementById('coF_codes').value.trim().toLowerCase();
 
-  const vis=OUTLETS.filter(o=>
-    (!b||o.brand===b)&&(!m||o.manager===m)&&(!f||o.fc===f)
-  );
+  let rows = buildCompanyRows();
 
-  clusterGroup=L.markerClusterGroup({
-    showCoverageOnHover:false,
-    maxClusterRadius:40,
-    iconCreateFunction:cluster=>{
-      const count=cluster.getChildCount();
-      return L.divIcon({
-        html:`<div style="background:#1a1d2e;color:#fff;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.25)">${count}</div>`,
-        className:"",iconSize:[34,34],iconAnchor:[17,17]
-      });
-    }
+  // Per-column filters
+  rows = rows.filter(r => {
+    if (fEntity && !r.entity.toLowerCase().includes(fEntity)) return false;
+    if (fShort && !(r.entity_short||'').toLowerCase().includes(fShort)) return false;
+    if (fBrand && !r.brands.includes(fBrand)) return false;
+    if (fCodes && !r.outlets.some(o => o.outlet_code.toLowerCase().includes(fCodes))) return false;
+    return true;
   });
 
-  vis.forEach(o=>{
-    const marker=L.marker([o.lat,o.lng],{icon:makeMapIcon(o.brand)});
-    const fcL=FC_LABEL[o.fc]||(o.fc||"—");
-    marker.bindPopup(`
-      <div class="pop-code">${o.code}</div>
-      <div class="pop-brand" style="color:${bColor(o.brand)}">${o.brand}${o.subBrand?` — <span style="color:#9ca3af;font-weight:400">${o.subBrand}</span>`:""}</div>
-      <div class="pop-row">👤 <b>${o.manager}</b> &nbsp;·&nbsp; 🏪 ${fcL}</div>
-      <div class="pop-row" style="font-size:10px;color:#9ca3af">${o.company}</div>
-      ${o.address?`<div class="pop-addr">📍 ${o.address}</div>`:""}
-    `,{maxWidth:270});
-    clusterGroup.addLayer(marker);
+  // Sort
+  rows.sort((a,b) => {
+    const av = a[coSortKey], bv = b[coSortKey];
+    if (typeof av === 'string') return av.localeCompare(bv) * coSortDir;
+    return (av - bv) * coSortDir;
   });
 
-  leafletMap.addLayer(clusterGroup);
-  document.getElementById("mapBadge").textContent=`${vis.length} outlet${vis.length!==1?"s":""}`;
+  document.getElementById('coCount').textContent = rows.length;
+  const body = document.getElementById('coBody');
+  const noRes = document.getElementById('coNoRes');
+  if (!rows.length){ body.innerHTML = ''; noRes.style.display = 'block'; return; }
+  noRes.style.display = 'none';
+
+  body.innerHTML = rows.map(r => {
+    const codes = r.outlets.map(o => o.operating ? o.outlet_code : `<s style="color:#dc2626">${o.outlet_code}</s>`).join(', ');
+    const brandBadges = r.brands.map(b => `<span class="badge ${badgeClass(b)}">${b}</span>`).join(' ');
+    return `<tr>
+      <td class="td-co" style="font-weight:600">${r.entity}</td>
+      <td style="font-family:'SF Mono',monospace;font-size:.74rem;color:#6b7280;white-space:nowrap">${r.entity_short || '-'}</td>
+      <td style="text-align:center;font-weight:700">${r.operating_count}</td>
+      <td style="text-align:center;color:${r.closed_count ? '#dc2626' : '#9ca3af'};font-weight:${r.closed_count ? 700 : 400}">${r.closed_count}</td>
+      <td style="text-align:center;font-weight:600">${r.brand_count}</td>
+      <td><div style="display:flex;flex-wrap:wrap;gap:4px">${brandBadges}</div></td>
+      <td style="font-family:'SF Mono',monospace;font-size:.72rem;color:#374151;white-space:normal;word-break:break-word">${codes}</td>
+    </tr>`;
+  }).join('');
 }
 
-// ══ TAB SWITCHING ══
-function switchTab(name, btn){
-  // Panels
-  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
-  document.getElementById("panel-"+name).classList.add("active");
-  // Buttons
-  document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
-  btn.classList.add("active");
-  // Map lazy init
-  if(name==="map"){
-    setTimeout(()=>{
-      initMap();
-      if(leafletMap) leafletMap.invalidateSize();
-    },50);
+function resetCompanyFilters(){
+  ['coF_entity','coF_short','coF_brand','coF_codes'].forEach(id => { document.getElementById(id).value = ''; });
+  setStatusFilter('companies', 'active');
+}
+
+// =============================================================
+// DATA HEALTH TAB — outlets with missing critical fields
+// =============================================================
+const HEALTH_FIELDS = [
+  { key: 'address',    label: 'Address',    critical: true  },
+  { key: 'sfa_number', label: 'SFA Number', critical: false },
+  { key: 'acc_email',  label: 'Acc Email',  critical: false },
+  { key: 'open_date',  label: 'Open Date',  critical: false }
+];
+
+function renderHealth(){
+  const fieldFilter = document.getElementById('dhField').value;
+  const pool = applyStatus(OUTLETS, 'health');
+
+  // Summary cards: count of outlets missing each field
+  const summary = HEALTH_FIELDS.map(f => {
+    const missing = pool.filter(o => !o[f.key]).length;
+    return { ...f, missing, total: pool.length };
+  });
+
+  document.getElementById('dhSummary').innerHTML = summary.map(s => {
+    const cls = s.missing === 0 ? 'ok' : (s.critical ? 'bad' : 'warn');
+    const pct = s.total ? Math.round(100 * s.missing / s.total) : 0;
+    return `<div class="dh-card ${cls}">
+      <div class="dh-card-label">${s.label}</div>
+      <div class="dh-card-val">${s.missing}</div>
+      <div class="dh-card-sub">missing &middot; ${pct}% of ${s.total}</div>
+    </div>`;
+  }).join('');
+
+  // Table of flagged outlets
+  let flagged = pool.map(o => {
+    const missing = HEALTH_FIELDS.filter(f => !o[f.key]);
+    return { o, missing };
+  }).filter(x => x.missing.length > 0);
+
+  if (fieldFilter !== 'any'){
+    flagged = flagged.filter(x => x.missing.some(f => f.key === fieldFilter));
   }
+
+  flagged.sort((a,b) => b.missing.length - a.missing.length || a.o.outlet_code.localeCompare(b.o.outlet_code));
+
+  document.getElementById('dhCount').textContent = flagged.length;
+  const body = document.getElementById('dhBody');
+  const noRes = document.getElementById('dhNoRes');
+  if (!flagged.length){ body.innerHTML = ''; noRes.style.display = 'block'; return; }
+  noRes.style.display = 'none';
+
+  body.innerHTML = flagged.map(({o, missing}) => {
+    const fcL = FC_LABEL[o.food_court] || (o.food_court || 'HQ/Internal');
+    const status = o.operating
+      ? '<span class="status-pill s-op">Operating</span>'
+      : `<span class="status-pill s-cl">Closed${o.close_date ? ' '+o.close_date : ''}</span>`;
+    const flags = missing.map(f =>
+      `<span class="dh-flag${f.critical ? '' : ' warn'}">${f.label}</span>`
+    ).join('');
+    return `<tr class="${o.operating ? '' : 'closed'}">
+      <td class="td-code">${o.outlet_code}</td>
+      <td><span class="badge ${badgeClass(o.brand)}">${o.brand}</span></td>
+      <td><span class="mgr">${o.manager}</span></td>
+      <td>${fcL}</td>
+      <td>${status}</td>
+      <td>${flags}</td>
+    </tr>`;
+  }).join('');
 }
+
+// =============================================================
+// TABS
+// =============================================================
+function switchTab(name, btn){
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// =============================================================
+// BOOT
+// =============================================================
+window.addEventListener('DOMContentLoaded', () => {
+  fetchData(true).then(ok => { if (ok) reinitDashboard(); });
+});
 </script>
 </body>
 </html>
