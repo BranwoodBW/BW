@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Branwood Group — Manager Drill-down</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f2f7;color:#1a1d2e}
+
+header{
+  background:linear-gradient(130deg,#1a1d2e 0%,#2e3562 100%);
+  color:#fff;padding:18px 28px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+}
+header h1{font-size:1.25rem;font-weight:700;letter-spacing:-.2px}
+header p{font-size:.76rem;color:#a5b4fc;margin-top:2px}
+.btn-refresh{
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);
+  color:#fff;padding:8px 14px;border-radius:8px;font-size:.8rem;font-weight:600;
+  cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background .15s;
+}
+.btn-refresh:hover:not(:disabled){background:rgba(255,255,255,.2)}
+.btn-refresh:disabled{opacity:.6;cursor:not-allowed}
+.btn-refresh.spinning svg{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.refresh-meta{font-size:.7rem;color:#c7d2fe;margin-top:4px;text-align:right}
+
+/* Layout */
+.layout{display:flex;align-items:stretch;min-height:calc(100vh - 70px)}
+
+.sidebar{
+  width:280px;flex-shrink:0;background:#fff;border-right:1px solid #e5e9f0;
+  display:flex;flex-direction:column;position:sticky;top:0;align-self:flex-start;
+  height:calc(100vh - 70px);
+}
+.sb-head{padding:14px 16px 10px;border-bottom:1px solid #f1f5f9;display:flex;flex-direction:column;gap:10px}
+.sb-label{font-size:.66rem;text-transform:uppercase;letter-spacing:.6px;color:#9ca3af;font-weight:700}
+.sb-search{
+  width:100%;padding:7px 11px;border:1px solid #e5e9f0;border-radius:7px;
+  font-size:.84rem;color:#1a1d2e;outline:none;
+}
+.sb-search:focus{border-color:#2563eb}
+.sb-meta{font-size:.72rem;color:#9ca3af;padding:8px 16px}
+.sb-meta b{color:#374151}
+
+.pill-group{display:inline-flex;border:1px solid #e5e9f0;border-radius:7px;overflow:hidden;background:#fff;width:100%}
+.pill-group .pill{
+  flex:1;border:none;background:none;padding:6px 8px;font-size:.74rem;font-weight:600;color:#6b7280;
+  cursor:pointer;border-right:1px solid #e5e9f0;transition:background .15s,color .15s;
+}
+.pill-group .pill:last-child{border-right:none}
+.pill-group .pill:hover{background:#f8fafc;color:#374151}
+.pill-group .pill.active{background:#2563eb;color:#fff}
+
+.sb-list{flex:1;overflow-y:auto;padding:6px 0 12px}
+.sb-mgr{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:10px 16px;cursor:pointer;border-left:3px solid transparent;
+  font-size:.86rem;color:#374151;transition:background .1s,border-color .1s;
+}
+.sb-mgr:hover{background:#f8fafc}
+.sb-mgr.active{background:#eff6ff;border-left-color:#2563eb;color:#1d4ed8;font-weight:700}
+.sb-mgr .name{font-weight:600;letter-spacing:.2px}
+.sb-mgr .stat{font-size:.74rem;color:#9ca3af;font-weight:600;background:#f1f5f9;padding:2px 8px;border-radius:10px;font-variant-numeric:tabular-nums}
+.sb-mgr.active .stat{background:#dbeafe;color:#1d4ed8}
+.sb-mgr .non-field{font-size:.62rem;color:#d97706;text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-top:2px}
+.sb-no-results{padding:20px 16px;text-align:center;color:#9ca3af;font-size:.8rem}
+
+main{flex:1;padding:24px 28px 60px;max-width:1300px;width:100%}
+
+.empty-state{
+  background:#fff;border:1px dashed #cbd5e1;border-radius:14px;
+  padding:60px 40px;text-align:center;color:#6b7280;
+}
+.empty-state h2{font-size:1.05rem;font-weight:600;color:#374151;margin-bottom:8px}
+.empty-state p{font-size:.86rem;line-height:1.5}
+
+/* Hero */
+.hero{
+  background:#fff;border:1px solid #e5e9f0;border-radius:14px;
+  padding:22px 26px;margin-bottom:18px;
+}
+.hero-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+.hero-name{font-size:1.7rem;font-weight:800;color:#1a1d2e;letter-spacing:-.5px}
+.hero-non-field{font-size:.65rem;font-weight:700;letter-spacing:.6px;text-transform:uppercase;background:#fef3c7;color:#78350f;padding:3px 9px;border-radius:5px;margin-left:8px;vertical-align:middle}
+.hero-meta{font-size:.82rem;color:#6b7280}
+
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px}
+.kpi-mini{background:#f8fafc;border:1px solid #e5e9f0;border-radius:10px;padding:12px 14px}
+.kpi-mini-label{font-size:.66rem;text-transform:uppercase;letter-spacing:.6px;color:#9ca3af;font-weight:700}
+.kpi-mini-val{font-size:1.5rem;font-weight:700;color:#1a1d2e;line-height:1.1;margin-top:4px}
+.kpi-mini-sub{font-size:.7rem;color:#9ca3af;margin-top:2px}
+.kpi-mini.closed .kpi-mini-val{color:#dc2626}
+
+/* Section heads */
+.section-head{
+  font-size:.7rem;text-transform:uppercase;letter-spacing:.7px;color:#9ca3af;
+  font-weight:700;margin:18px 0 10px;padding-left:2px;display:flex;justify-content:space-between;align-items:flex-end;
+}
+.section-head .count{color:#374151;font-size:.78rem;text-transform:none;letter-spacing:0;font-weight:600}
+
+/* Outlet cards */
+.outlet-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.out-card{
+  background:#fff;border:1px solid #e5e9f0;border-radius:11px;padding:14px 16px;
+  display:flex;flex-direction:column;gap:6px;text-decoration:none;color:inherit;
+  transition:border-color .15s,box-shadow .15s,transform .15s;
+}
+.out-card:hover{border-color:#2563eb;box-shadow:0 4px 14px rgba(37,99,235,.1);transform:translateY(-1px)}
+.out-card.closed{opacity:.65}
+.out-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.out-code{font-family:'SF Mono','Fira Code',monospace;font-size:.92rem;font-weight:800;color:#1a1d2e}
+.out-status{font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:4px}
+.out-status.op{background:#dcfce7;color:#166534}
+.out-status.cl{background:#fee2e2;color:#991b1b}
+.out-brand{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.out-fc{font-size:.66rem;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;font-weight:600;margin-left:auto}
+.out-sub{font-size:.74rem;color:#9ca3af;font-style:italic}
+.out-addr{font-size:.74rem;color:#6b7280;line-height:1.45;margin-top:4px}
+.out-entity{font-size:.7rem;color:#9ca3af;font-weight:500;border-top:1px solid #f1f5f9;padding-top:6px;margin-top:auto}
+
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.66rem;font-weight:700;white-space:nowrap}
+.b-sea{background:#dbeafe;color:#1d4ed8}
+.b-haus{background:#ffedd5;color:#9a3412}
+.b-hjo{background:#dcfce7;color:#15803d}
+.b-hji{background:#fef9c3;color:#713f12}
+.b-mhk{background:#d1fae5;color:#065f46}
+.b-spi{background:#cffafe;color:#0e7490}
+.b-ali{background:#fee2e2;color:#991b1b}
+.b-jkc{background:#ede9fe;color:#5b21b6}
+.b-ck{background:#f1f5f9;color:#475569}
+
+/* Brand-mix bar (visual breakdown) */
+.brand-bar{display:flex;height:8px;border-radius:4px;overflow:hidden;margin-top:6px;background:#f1f5f9}
+.brand-bar-seg{height:100%}
+.brand-legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;font-size:.7rem;color:#6b7280}
+.brand-legend .leg-item{display:flex;align-items:center;gap:4px}
+.leg-dot{width:9px;height:9px;border-radius:50%}
+
+/* Phase-2 future cards */
+.future-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:8px}
+.future-card{
+  background:#fff;border:1px solid #e5e9f0;border-radius:12px;
+  padding:18px 20px;position:relative;overflow:hidden;
+  display:flex;flex-direction:column;gap:8px;min-height:140px;
+}
+.future-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:#cbd5e1}
+.future-head{display:flex;align-items:center;gap:10px}
+.future-icon{
+  width:34px;height:34px;border-radius:8px;background:#f1f5f9;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:.8rem;color:#6b7280;
+}
+.future-title{font-size:.92rem;font-weight:700;color:#1a1d2e}
+.future-pending{
+  display:inline-block;font-size:.65rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.6px;background:#fef3c7;color:#78350f;padding:3px 8px;border-radius:4px;
+}
+.future-desc{font-size:.78rem;color:#6b7280;line-height:1.5;margin-top:2px}
+.future-source{font-size:.7rem;color:#9ca3af;margin-top:auto;padding-top:4px;border-top:1px solid #f1f5f9}
+
+#loadingOverlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);
+  color:#fff;font-size:1.05rem;font-weight:500;
+  align-items:center;justify-content:center;z-index:9999;
+}
+#loadingOverlay.show{display:flex}
+
+.error-banner{
+  background:#fee2e2;color:#991b1b;border:1px solid #fecaca;
+  border-radius:8px;padding:12px 16px;margin:16px 28px 0;font-size:.85rem;
+}
+</style>
+</head>
+<body>
+
+<div id="loadingOverlay">Fetching CTM sheet...</div>
+
+<header>
+  <div>
+    <h1>Branwood Group</h1>
+    <p>Manager Drill-down - CTM Sheet (Live)</p>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+    <button class="btn-refresh" id="refreshBtn" onclick="refreshData()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      Refresh
+    </button>
+    <span class="refresh-meta" id="refreshMeta">-</span>
+  </div>
+</header>
+
+<div id="errorBanner" class="error-banner" style="display:none"></div>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sb-head">
+      <div>
+        <div class="sb-label" style="margin-bottom:4px">Outlet Status</div>
+        <div class="pill-group" id="statusPills">
+          <button class="pill active" data-val="active" onclick="setStatusFilter('active')">Active</button>
+          <button class="pill" data-val="inactive" onclick="setStatusFilter('inactive')">Inactive</button>
+          <button class="pill" data-val="both" onclick="setStatusFilter('both')">Both</button>
+        </div>
+      </div>
+      <div>
+        <div class="sb-label" style="margin-bottom:4px">Search</div>
+        <input class="sb-search" id="sbSearch" type="text" placeholder="Manager name..." oninput="renderManagerList()"/>
+      </div>
+    </div>
+    <div class="sb-meta"><b id="poolCount">-</b> outlets &middot; <b id="mgrCount">-</b> managers</div>
+    <div class="sb-list" id="sbList"></div>
+  </aside>
+
+  <main id="content">
+    <div class="empty-state">
+      <h2>Select a manager to view their portfolio</h2>
+      <p>Pick a manager from the list on the left. Use the <b>Outlet Status</b> filter and <b>Search</b> to narrow it down.</p>
+    </div>
+  </main>
+</div>
+
+<script>
+const SHEET_ID = '1HFm4S3QvJOG4u_pE8U9D8JSqwuX2Cs8qt9MHpzLsnbs';
+const GID = '408242429';
+const CSV_URL = (cb) => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}` + (cb ? `&_=${Date.now()}` : '');
+
+const COL = {
+  K_entity:10, L_entity_short:11, M_in_ex:12,
+  O_food_court:14, P_brand_full:15, T_manager:19,
+  W_outlet_code:22, X_open_date:23, Y_close_date:24, Z_operating:25,
+  AA_sfa:26, AB_address:27
+};
+
+const FC_LABEL = {KPT:'Kopitiam', KOUFU:'Koufu', FJ:'Food Junction', OTH:'Others', '':'HQ/Internal'};
+const NON_FIELD_MGRS = new Set(['CK','IHQ','HQO']);
+const BRAND_COLOR = {
+  'SEABAY DELIGHT':'#3b82f6', 'HAUS BAN MIAN':'#f97316', 'HAO JIA BAN MIAN':'#22c55e',
+  'HAO JIA MEE HOON KUAY':'#10b981', 'HAO JIA JI':'#84cc16', 'SPINACH CHEF':'#06b6d4',
+  "ALI'S FRY & GRILL":'#ef4444', "ALI'S GRILL":'#f87171',
+  'JAPANESE KOREAN CUISINE':'#a855f7', 'CK':'#94a3b8'
+};
+
+function bColor(b){ return BRAND_COLOR[b] || '#64748b'; }
+function badgeClass(b){
+  if (!b) return 'b-ck';
+  if (b.includes('SEABAY')) return 'b-sea';
+  if (b.includes('HAUS')) return 'b-haus';
+  if (b === 'HAO JIA MEE HOON KUAY') return 'b-mhk';
+  if (b.includes('HAO JIA JI')) return 'b-hji';
+  if (b.includes('HAO JIA')) return 'b-hjo';
+  if (b.includes('SPINACH')) return 'b-spi';
+  if (b.includes('ALI')) return 'b-ali';
+  if (b.includes('JAPANESE') || b.includes('KOREAN')) return 'b-jkc';
+  return 'b-ck';
+}
+
+function parseCSV(text){
+  const rows = []; let cur = '', row = [], inQ = false;
+  for (let i = 0; i < text.length; i++){
+    const c = text[i];
+    if (c === '"'){
+      if (inQ && text[i+1] === '"'){ cur += '"'; i++; }
+      else { inQ = !inQ; }
+    } else if (c === ',' && !inQ){ row.push(cur); cur = ''; }
+    else if ((c === '\n' || c === '\r') && !inQ){
+      if (c === '\r' && text[i+1] === '\n') i++;
+      row.push(cur); cur = '';
+      if (row.length > 1 || row[0] !== '') rows.push(row);
+      row = [];
+    } else { cur += c; }
+  }
+  if (cur.length || row.length){ row.push(cur); rows.push(row); }
+  return rows;
+}
+
+let OUTLETS = [];
+let STATUS = 'active';
+let SELECTED_MGR = null;
+
+async function fetchData(showOverlay){
+  const overlay = document.getElementById('loadingOverlay');
+  const banner = document.getElementById('errorBanner');
+  banner.style.display = 'none';
+  if (showOverlay) overlay.classList.add('show');
+  try {
+    const r = await fetch(CSV_URL(true), { credentials: 'omit' });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const text = await r.text();
+    const rows = parseCSV(text);
+    OUTLETS = [];
+    for (let i = 1; i < rows.length; i++){
+      const r = rows[i];
+      if (r.length < 32) continue;
+      const inEx = (r[COL.M_in_ex] || '').trim().toUpperCase();
+      if (inEx === 'EX') continue;
+      const code = (r[COL.W_outlet_code] || '').trim();
+      const brandFull = (r[COL.P_brand_full] || '').trim();
+      const fc = (r[COL.O_food_court] || '').trim();
+      if (!code || !brandFull || !fc) continue;
+      const [brand, ...subParts] = brandFull.split(' - ');
+      OUTLETS.push({
+        outlet_code: code,
+        brand: brand.trim(),
+        sub_brand: subParts.join(' - ').trim(),
+        manager: (r[COL.T_manager] || '').trim(),
+        food_court: fc,
+        entity: (r[COL.K_entity] || '').trim(),
+        entity_short: (r[COL.L_entity_short] || '').trim(),
+        open_date: (r[COL.X_open_date] || '').trim(),
+        close_date: (r[COL.Y_close_date] || '').trim(),
+        operating: (r[COL.Z_operating] || '').trim().toUpperCase() === 'Y',
+        sfa_number: (r[COL.AA_sfa] || '').trim(),
+        address: (r[COL.AB_address] || '').trim().replace(/\n/g,' | ')
+      });
+    }
+    const stamp = new Date();
+    document.getElementById('refreshMeta').textContent = 'As of ' + stamp.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) + ' ' + stamp.toLocaleDateString();
+    overlay.classList.remove('show');
+    return true;
+  } catch (err){
+    overlay.classList.remove('show');
+    banner.style.display = 'block';
+    banner.textContent = 'Could not fetch CTM sheet: ' + err.message + '. The sheet must be shared as "Anyone with link - Viewer".';
+    console.error(err);
+    return false;
+  }
+}
+
+function refreshData(){
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('spinning'); btn.disabled = true;
+  fetchData(false).then(ok => {
+    btn.classList.remove('spinning'); btn.disabled = false;
+    if (ok) renderManagerList();
+  });
+}
+
+function setStatusFilter(val){
+  STATUS = val;
+  document.querySelectorAll('#statusPills .pill').forEach(p => p.classList.toggle('active', p.dataset.val === val));
+  renderManagerList();
+}
+
+function poolForStatus(){
+  return STATUS === 'both' ? OUTLETS
+       : STATUS === 'active' ? OUTLETS.filter(o => o.operating)
+       : OUTLETS.filter(o => !o.operating);
+}
+
+function renderManagerList(){
+  const search = document.getElementById('sbSearch').value.trim().toLowerCase();
+  const pool = poolForStatus();
+  document.getElementById('poolCount').textContent = pool.length;
+
+  // Group by manager, count outlets
+  const byMgr = {};
+  pool.forEach(o => { (byMgr[o.manager] = byMgr[o.manager] || []).push(o); });
+  let mgrs = Object.entries(byMgr).map(([name, outs]) => ({ name, count: outs.length }));
+
+  // Field managers first (alphabetical), then non-field
+  mgrs.sort((a,b) => {
+    const aNonField = NON_FIELD_MGRS.has(a.name);
+    const bNonField = NON_FIELD_MGRS.has(b.name);
+    if (aNonField !== bNonField) return aNonField ? 1 : -1;
+    return b.count - a.count || a.name.localeCompare(b.name);
+  });
+
+  if (search) mgrs = mgrs.filter(m => m.name.toLowerCase().includes(search));
+
+  document.getElementById('mgrCount').textContent = mgrs.length;
+  const list = document.getElementById('sbList');
+
+  if (!mgrs.length){
+    list.innerHTML = '<div class="sb-no-results">No managers match the current filters.</div>';
+    return;
+  }
+  list.innerHTML = mgrs.map(m => {
+    const isNonField = NON_FIELD_MGRS.has(m.name);
+    return `<div class="sb-mgr ${m.name === SELECTED_MGR ? 'active' : ''}" data-mgr="${m.name}" onclick="selectManager('${m.name.replace(/'/g, "\\'")}')">
+      <div>
+        <div class="name">${m.name}</div>
+        ${isNonField ? '<div class="non-field">HQ / non-field</div>' : ''}
+      </div>
+      <span class="stat">${m.count}</span>
+    </div>`;
+  }).join('');
+}
+
+function selectManager(name){
+  SELECTED_MGR = name;
+  document.querySelectorAll('.sb-mgr').forEach(el => {
+    el.classList.toggle('active', el.dataset.mgr === name);
+  });
+  renderManagerDetail();
+}
+
+const FUTURE_SECTIONS = [
+  { icon: 'S', title: 'Combined Sales Trend', source: 'Daily Sales sheet (live)',
+    desc: 'Aggregated revenue across all outlets under this manager, with channel split.' },
+  { icon: 'P', title: 'P&L Summary', source: 'P&L costs sheet (Accounts)',
+    desc: 'Combined and per-outlet P&L for this manager\'s portfolio.' },
+  { icon: 'M', title: 'Marketing Activity', source: 'MKT Tracker sheet (live)',
+    desc: 'All marketing campaigns running across this manager\'s outlets.' },
+  { icon: 'R', title: 'Promo Calendar', source: 'Promo Tracker sheet (live)',
+    desc: 'Active and upcoming promotions for this manager\'s outlets.' }
+];
+
+function renderFutureCards(){
+  return `<div class="section-head">Coming in Phase 2</div>
+    <div class="future-grid">
+      ${FUTURE_SECTIONS.map(s => `
+        <div class="future-card">
+          <div class="future-head">
+            <div class="future-icon">${s.icon}</div>
+            <div>
+              <div class="future-title">${s.title}</div>
+              <span class="future-pending">Pending data source</span>
+            </div>
+          </div>
+          <div class="future-desc">${s.desc}</div>
+          <div class="future-source">Source: ${s.source}</div>
+        </div>`).join('')}
+    </div>`;
+}
+
+function renderManagerDetail(){
+  const content = document.getElementById('content');
+  if (!SELECTED_MGR){
+    content.innerHTML = `<div class="empty-state"><h2>Select a manager to view their portfolio</h2></div>`;
+    return;
+  }
+
+  // Manager's outlets in current pool
+  const mgrOutlets = poolForStatus().filter(o => o.manager === SELECTED_MGR);
+  if (!mgrOutlets.length){
+    content.innerHTML = `<div class="empty-state"><h2>No outlets for ${SELECTED_MGR} in current filter</h2><p>Switch the Status filter to see outlets in other states.</p></div>`;
+    return;
+  }
+
+  const ops = mgrOutlets.filter(o => o.operating);
+  const closed = mgrOutlets.filter(o => !o.operating);
+  const brands = [...new Set(mgrOutlets.map(o => o.brand))].sort();
+  const fcs = [...new Set(mgrOutlets.map(o => o.food_court))].sort();
+  const entities = [...new Set(mgrOutlets.map(o => o.entity))];
+  const isNonField = NON_FIELD_MGRS.has(SELECTED_MGR);
+
+  // Brand mix segments
+  const brandCounts = {};
+  mgrOutlets.forEach(o => { brandCounts[o.brand] = (brandCounts[o.brand]||0)+1; });
+  const total = mgrOutlets.length;
+  const brandMix = Object.entries(brandCounts).sort((a,b)=>b[1]-a[1]);
+
+  // Sort outlets: operating first, then by brand, then code
+  const sorted = [...mgrOutlets].sort((a,b) =>
+    (a.operating === b.operating ? 0 : a.operating ? -1 : 1) ||
+    a.brand.localeCompare(b.brand) ||
+    a.outlet_code.localeCompare(b.outlet_code)
+  );
+
+  content.innerHTML = `
+    <div class="hero">
+      <div class="hero-head">
+        <div>
+          <div class="hero-name">${SELECTED_MGR}${isNonField ? '<span class="hero-non-field">HQ / non-field</span>' : ''}</div>
+          <div class="hero-meta">${total} outlet${total!==1?'s':''} &middot; ${brands.length} brand${brands.length!==1?'s':''} &middot; ${fcs.length} food court${fcs.length!==1?'s':''} &middot; ${entities.length} entit${entities.length!==1?'ies':'y'}</div>
+        </div>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi-mini"><div class="kpi-mini-label">Operating</div><div class="kpi-mini-val">${ops.length}</div><div class="kpi-mini-sub">currently active</div></div>
+        <div class="kpi-mini ${closed.length ? 'closed' : ''}"><div class="kpi-mini-label">Closed</div><div class="kpi-mini-val">${closed.length}</div><div class="kpi-mini-sub">historical</div></div>
+        <div class="kpi-mini"><div class="kpi-mini-label">Brands</div><div class="kpi-mini-val">${brands.length}</div><div class="kpi-mini-sub">distinct</div></div>
+        <div class="kpi-mini"><div class="kpi-mini-label">Food Courts</div><div class="kpi-mini-val">${fcs.length}</div><div class="kpi-mini-sub">${fcs.map(f => FC_LABEL[f] || f).join(', ')}</div></div>
+        <div class="kpi-mini"><div class="kpi-mini-label">Entities</div><div class="kpi-mini-val">${entities.length}</div><div class="kpi-mini-sub">legal</div></div>
+      </div>
+      <div class="brand-bar">
+        ${brandMix.map(([b,n]) => `<div class="brand-bar-seg" style="width:${(n/total)*100}%;background:${bColor(b)}" title="${b}: ${n}"></div>`).join('')}
+      </div>
+      <div class="brand-legend">
+        ${brandMix.map(([b,n]) => `<div class="leg-item"><div class="leg-dot" style="background:${bColor(b)}"></div>${b} (${n})</div>`).join('')}
+      </div>
+    </div>
+
+    <div class="section-head">Outlets <span class="count">${total} total</span></div>
+    <div class="outlet-grid">
+      ${sorted.map(o => {
+        const fcL = FC_LABEL[o.food_court] || o.food_court;
+        return `<a class="out-card ${o.operating ? '' : 'closed'}" href="outlet-drilldown.html#${encodeURIComponent(o.outlet_code)}" title="View outlet detail">
+          <div class="out-head">
+            <span class="out-code">${o.outlet_code}</span>
+            <span class="out-status ${o.operating ? 'op' : 'cl'}">${o.operating ? 'Operating' : 'Closed'}</span>
+          </div>
+          <div class="out-brand">
+            <span class="badge ${badgeClass(o.brand)}">${o.brand}</span>
+            <span class="out-fc">${fcL}</span>
+          </div>
+          ${o.sub_brand ? `<div class="out-sub">${o.sub_brand}</div>` : ''}
+          ${o.address ? `<div class="out-addr">${o.address}</div>` : ''}
+          <div class="out-entity">${o.entity_short ? `${o.entity_short} &middot; ` : ''}${o.entity}</div>
+        </a>`;
+      }).join('')}
+    </div>
+
+    ${renderFutureCards()}
+  `;
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  fetchData(true).then(ok => { if (ok) renderManagerList(); });
+});
+</script>
+</body>
+</html>
