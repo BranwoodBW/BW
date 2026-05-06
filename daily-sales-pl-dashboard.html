@@ -10881,11 +10881,14 @@ function renderMonthTable(agg,filters){
 }
 
 // ── KPIs ──────────────────────────────────────────────────────────────────────
+// Channel categorization (locked 2026-05-06, see Handoffs/data-sources.md):
+//   Dine-in  = FC (CDC + FC Counter) + QLUB + SHOPBACK
+//   Delivery = FP + GF + DVROO
 function renderKPIs(agg,filters){
   const{total,bySrc}=agg;
-  const cdcIdx=VSRC_CDC, fccIdx=VSRC_FC_COUNTER;
-  const fcTotal=(filters.allowedS.has(cdcIdx)?bySrc[cdcIdx]:0)+(filters.allowedS.has(fccIdx)?bySrc[fccIdx]:0);
-  const delivIdxs=['FP','GF','DVROO','QLUB','SHOPBACK'].map(s=>VSOURCES.indexOf(s)).filter(i=>i>=0&&filters.allowedS.has(i));
+  const dineIdxs=['CDC','FC Counter','QLUB','SHOPBACK'].map(s=>VSOURCES.indexOf(s)).filter(i=>i>=0&&filters.allowedS.has(i));
+  const fcTotal=dineIdxs.reduce((s,i)=>s+bySrc[i],0);
+  const delivIdxs=['FP','GF','DVROO'].map(s=>VSOURCES.indexOf(s)).filter(i=>i>=0&&filters.allowedS.has(i));
   const delivery=delivIdxs.reduce((s,i)=>s+bySrc[i],0);
   const delivPct=total?(delivery/total*100).toFixed(1):0, fcPct=total?(fcTotal/total*100).toFixed(1):0;
   const monthTots=Array.from(filters.allowedM).map(i=>({v:agg.byMonth[i],l:mLabel(MONTHS[i])})).filter(x=>x.v>1);
@@ -10894,8 +10897,8 @@ function renderKPIs(agg,filters){
   const fpIdx=VSOURCES.indexOf('FP'), gfIdx=VSOURCES.indexOf('GF'), dvIdx=VSOURCES.indexOf('DVROO');
   const kpis=[
     {label:'Total Sales',value:fmt(total),sub:'filtered period',accent:true},
-    {label:'FC Counter + CDC',value:fmt(fcTotal),sub:`${fcPct}% of total`},
-    {label:'All Delivery',value:fmt(delivery),sub:`${delivPct}% of total`},
+    {label:'Dine-in',value:fmt(fcTotal),sub:`${fcPct}% · FC + Qlub + ShopBack`},
+    {label:'Delivery',value:fmt(delivery),sub:`${delivPct}% · FP + GF + Deliveroo`},
     {label:'Foodpanda',value:fmt(filters.allowedS.has(fpIdx)?bySrc[fpIdx]:0),sub:'FP'},
     {label:'GrabFood',value:fmt(filters.allowedS.has(gfIdx)?bySrc[gfIdx]:0),sub:'GF'},
     {label:'Deliveroo',value:fmt(filters.allowedS.has(dvIdx)?bySrc[dvIdx]:0),sub:'DVROO'},
